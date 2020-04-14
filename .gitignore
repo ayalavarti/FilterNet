@@ -1,0 +1,15 @@
+# Byte-compiled / optimized / DLL files
+*/__pycache__/
+*.py[cod]
+*$py.class
+
+# Environments
+cv_env/
+
+.idea/
+__pycache__
+
+.DS_Store
+
+data/
+saved_models/
