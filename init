@@ -9,30 +9,37 @@ CV_ENV='cv_env'
 if [[ $1 == $HELP_FLAG ]]
 then
 	echo "Usage: $(basename $0) [ <$INSTALL_FLAG> <$GCP_FLAG>]"
-	exit 0
-fi
+else
 
-if [ ! -d "./$CV_ENV" ]
-then
-  echo "Virtual environment not found. Installing cv_env."
-  python3 -m venv $CV_ENV
-fi
+	if [ ! -d "./$CV_ENV" ]
+	then
+	  echo "Virtual environment not found. Installing cv_env."
+	  python3 -m venv $CV_ENV
+	fi
 
-source $CV_ENV/bin/activate
+	source $CV_ENV/bin/activate
 
-if [[ $1 == $INSTALL_FLAG ]]; then
-	pip install -r requirements.txt
-fi
+	if [[ $1 == $INSTALL_FLAG ]]; then
+		pip install -r requirements.txt
+	fi
 
 
-if [[ $1 == $GCP_FLAG || $2 == $GCP_FLAG ]]; then
-  if ! gsutil version | grep -q 'gsutil version:'; then
-   echo "Installing gsutil"
-   sudo pip install gsutil
-  fi
-  echo "Downloading data from GCP"
-  gsutil cp gs://filter_net/image_data.tar.gz ./image_data.tar.gz
-  echo "Extracting data"
-  mv data data_old
-  tar -xzvf image_data.tar.gz
+	if [[ $1 == $GCP_FLAG || $2 == $GCP_FLAG ]]; then
+		if ! gcloud --version | grep -q 'Google Cloud SDK'; then
+			echo "Error. No installation of Google Cloud SDK detected. Aborting."
+		else
+			echo "Downloading data from GCP"
+			gsutil cp gs://filter_net/image_data.tar.gz ./image_data.tar.gz
+			echo "Extracting data"
+			
+			if [ -d "./data" ]
+			then
+				echo "Moving old data directory"
+				mv data data_old
+			fi
+			echo "Extracting image data"
+  			tar -xzvf image_data.tar.gz
+			rm -rf image_data.tar.gz
+		fi
+	fi
 fi
