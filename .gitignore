@@ -12,4 +12,5 @@ __pycache__
 .DS_Store
 
 data/
+data_old/
 saved_models/

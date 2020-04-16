@@ -1,0 +1,3 @@
+#!/bin/bash
+
+tar -czvf image_data.tar.gz --exclude=".DS_Store" data
