@@ -4,11 +4,14 @@ from argparse import ArgumentParser, ArgumentTypeError
 import tensorflow as tf
 
 import nn.hyperparameters as hp
+import util.sys as sys
 from nn.models import Generator, Discriminator
-from util.data.preprocess import Datasets
+from util.datasets import Datasets
 
 # Killing optional CPU driver warnings
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
+
+gpu_available = tf.config.list_physical_devices("GPU")
 
 
 def parse_args():
@@ -28,7 +31,19 @@ def parse_args():
 		prog="FilterNet",
 		description="A deep learning program for photo-realistic image editing")
 
+	parser.add_argument("--checkpoint-dir",
+						default=os.getcwd() + "/model_weights",
+						help="Directory to store checkpoint model weights")
+
+	parser.add_argument("--device",
+						type=str,
+						default="GPU:0" if gpu_available else "CPU:0",
+						help="Specify the device of computation eg. CPU:0, "
+							 "GPU:0, GPU:1, GPU:2, ... ")
 	subparsers = parser.add_subparsers()
+	subparsers.required = True
+	subparsers.dest = "command"
+
 	# Subparser for train command
 	tn = subparsers.add_parser(
 		"train",
@@ -39,14 +54,10 @@ def parse_args():
 					type=int, default=hp.num_epochs,
 					help="Number of epochs to train for")
 
-	tn.add_argument("--load-checkpoint",
-					default=None,
-					help="Path to model checkpoint file (should end with the"
-						 "extension .h5)")
-
-	tn.add_argument("--checkpoint-dir",
-					default=os.getcwd() + "/model_weights",
-					help="Directory to store checkpoint model weights")
+	tn.add_argument("--restore-checkpoint",
+					action="store_true",
+					help="Use this flag to resuming training from a"
+						 "previously-saved checkpoint")
 
 	tn.add_argument("--untouched-dir",
 					type=valid_dir,
@@ -60,12 +71,8 @@ def parse_args():
 
 	# Subparser for test command
 	ts = subparsers.add_parser(
-		"test", description="Evaluate the model on the given test data")
+		"test", description="Test the model on the given test data")
 	ts.set_defaults(command="test")
-
-	ts.add_argument("--checkpoint-file",
-					type=valid_model,
-					help="Model weights to use with testing")
 
 	ts.add_argument("--untouched-dir",
 					type=valid_dir,
@@ -76,6 +83,21 @@ def parse_args():
 					type=valid_dir,
 					default=os.getcwd() + "/data/test/edited",
 					help="Directory of expert edited images for testing")
+
+	# Subparser for evaluate command
+	ev = subparsers.add_parser(
+		"evaluate", description="Evaluate / run the model on the given data")
+	ev.set_defaults(command="evaluate")
+
+	ev.add_argument("--image-dir",
+					type=valid_dir,
+					default=os.getcwd() + "/data/test/untouched",
+					help="Directory of untouched images for evaluating")
+
+	ev.add_argument("--output-dir",
+					type=valid_dir,
+					default=os.getcwd() + "/output/",
+					help="Directory of output edited images for testing")
 
 	return parser.parse_args()
 
@@ -93,9 +115,41 @@ def test():
 
 
 def main():
-	gpu_available = tf.test.is_gpu_available()
+	# Initialize generator and discriminator models
+	generator = Generator()
+	discriminator = Discriminator()
 
-	pass
+	# Ensure the checkpoint directory exists
+	sys.enforce_dir(ARGS.checkpoint_dir)
+
+	# Set up tf checkpoint manager
+	checkpoint = tf.train.Checkpoint(generator=generator,
+									 discriminator=discriminator)
+	manager = tf.train.CheckpointManager(checkpoint, ARGS.checkpoint_dir,
+										 max_to_keep=3)
+
+	try:
+		with tf.device("/device:" + ARGS.device):
+			if ARGS.command == "train":
+				pass
+				# train here!
+				# create dataset for train data
+
+			if ARGS.command == 'test':
+				pass
+				# test here!
+				# create dataset for test data
+
+			if ARGS.command == 'evaluate':
+				# Ensure the output directory exists
+				sys.enforce_dir(ARGS.output_dir)
+				# evaluate here!
+				# create dataset for provided data
+				pass
+
+	except RuntimeError as e:
+		# something went wrong should not get here
+		print(e)
 
 
 if __name__ == "__main__":
