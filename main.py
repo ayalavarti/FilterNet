@@ -21,25 +21,21 @@ def parse_args():
 		else:
 			raise ArgumentTypeError(f"Invalid directory: {directory}")
 
-	def valid_model(model_file):
-		if model_file.endswith(".h5"):
-			return os.path.normpath(model_file)
-		else:
-			raise ArgumentTypeError(f"Invalid model file: {model_file}")
-
 	parser = ArgumentParser(
 		prog="FilterNet",
 		description="A deep learning program for photo-realistic image editing")
 
-	parser.add_argument("--checkpoint-dir",
-						default=os.getcwd() + "/model_weights",
-						help="Directory to store checkpoint model weights")
+	parser.add_argument(
+		"--checkpoint-dir",
+		default=os.getcwd() + "/model_weights",
+		help="Directory to store checkpoint model weights")
 
-	parser.add_argument("--device",
-						type=str,
-						default="GPU:0" if gpu_available else "CPU:0",
-						help="Specify the device of computation eg. CPU:0, "
-							 "GPU:0, GPU:1, GPU:2, ... ")
+	parser.add_argument(
+		"--device",
+		type=str,
+		default="GPU:0" if gpu_available else "CPU:0",
+		help="Specify the device of computation eg. CPU:0, GPU:0, GPU:1, ... ")
+
 	subparsers = parser.add_subparsers()
 	subparsers.required = True
 	subparsers.dest = "command"
@@ -50,54 +46,61 @@ def parse_args():
 		description="Train a new model on the given untouched and edited images")
 	tn.set_defaults(command="train")
 
-	tn.add_argument("--epochs",
-					type=int, default=hp.num_epochs,
-					help="Number of epochs to train for")
+	tn.add_argument(
+		"--epochs",
+		type=int, default=hp.num_epochs,
+		help="Number of epochs to train for")
 
-	tn.add_argument("--restore-checkpoint",
-					action="store_true",
-					help="Use this flag to resuming training from a"
-						 "previously-saved checkpoint")
+	tn.add_argument(
+		"--restore-checkpoint",
+		action="store_true",
+		help="Use this flag to resuming training from a previous checkpoint")
 
-	tn.add_argument("--untouched-dir",
-					type=valid_dir,
-					default=os.getcwd() + "/data/train/untouched",
-					help="Directory of untouched images for training")
+	tn.add_argument(
+		"--untouched-dir",
+		type=valid_dir,
+		default=os.getcwd() + "/data/train/untouched",
+		help="Directory of untouched images for training")
 
-	tn.add_argument("--edited-dir",
-					type=valid_dir,
-					default=os.getcwd() + "/data/train/edited/C",
-					help="Directory of expert edited images for training")
+	tn.add_argument(
+		"--edited-dir",
+		type=valid_dir,
+		default=os.getcwd() + "/data/train/edited/C",
+		help="Directory of expert edited images for training")
 
 	# Subparser for test command
 	ts = subparsers.add_parser(
 		"test", description="Test the model on the given test data")
 	ts.set_defaults(command="test")
 
-	ts.add_argument("--untouched-dir",
-					type=valid_dir,
-					default=os.getcwd() + "/data/test/untouched",
-					help="Directory of untouched images for testing")
+	ts.add_argument(
+		"--untouched-dir",
+		type=valid_dir,
+		default=os.getcwd() + "/data/test/untouched",
+		help="Directory of untouched images for testing")
 
-	ts.add_argument("--edited-dir",
-					type=valid_dir,
-					default=os.getcwd() + "/data/test/edited",
-					help="Directory of expert edited images for testing")
+	ts.add_argument(
+		"--edited-dir",
+		type=valid_dir,
+		default=os.getcwd() + "/data/test/edited",
+		help="Directory of expert edited images for testing")
 
 	# Subparser for evaluate command
 	ev = subparsers.add_parser(
 		"evaluate", description="Evaluate / run the model on the given data")
 	ev.set_defaults(command="evaluate")
 
-	ev.add_argument("--image-dir",
-					type=valid_dir,
-					default=os.getcwd() + "/data/test/untouched",
-					help="Directory of untouched images for evaluating")
+	ev.add_argument(
+		"--image-dir",
+		type=valid_dir,
+		default=os.getcwd() + "/data/test/untouched",
+		help="Directory of untouched images for evaluating")
 
-	ev.add_argument("--output-dir",
-					type=valid_dir,
-					default=os.getcwd() + "/output/",
-					help="Directory of output edited images for testing")
+	ev.add_argument(
+		"--output-dir",
+		type=valid_dir,
+		default=os.getcwd() + "/output/",
+		help="Directory of output edited images for testing")
 
 	return parser.parse_args()
 
@@ -123,28 +126,31 @@ def main():
 	sys.enforce_dir(ARGS.checkpoint_dir)
 
 	# Set up tf checkpoint manager
-	checkpoint = tf.train.Checkpoint(generator=generator,
-									 discriminator=discriminator)
-	manager = tf.train.CheckpointManager(checkpoint, ARGS.checkpoint_dir,
-										 max_to_keep=3)
+	checkpoint = tf.train.Checkpoint(
+		generator=generator,
+		discriminator=discriminator)
+
+	manager = tf.train.CheckpointManager(
+		checkpoint, ARGS.checkpoint_dir,
+		max_to_keep=3)
 
 	try:
 		with tf.device("/device:" + ARGS.device):
 			if ARGS.command == "train":
-				pass
 				# train here!
-				# create dataset for train data
+				dataset = Datasets(ARGS.untouched_dir, ARGS.edited_dir, "train")
+				pass
 
 			if ARGS.command == 'test':
-				pass
 				# test here!
-				# create dataset for test data
+				dataset = Datasets(ARGS.untouched_dir, ARGS.edited_dir, "test")
+				pass
 
 			if ARGS.command == 'evaluate':
 				# Ensure the output directory exists
 				sys.enforce_dir(ARGS.output_dir)
 				# evaluate here!
-				# create dataset for provided data
+				dataset = Datasets(ARGS.image_dir, None, "evaluate")
 				pass
 
 	except RuntimeError as e:
