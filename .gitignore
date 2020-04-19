@@ -7,9 +7,12 @@
 cv_env/
 
 .idea/
+.vscode/
 __pycache__
 
 .DS_Store
+
+*.tar.gz
 
 data/
 data_old/
