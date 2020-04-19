@@ -12,7 +12,7 @@ class Generator(tf.keras.Model):
         pass
 
     @tf.function
-    def loss_function(self):
+    def loss_function(self, disc_model_output):
         pass
 
 
@@ -25,5 +25,5 @@ class Discriminator(tf.keras.Model):
         pass
 
     @tf.function
-    def loss_function(self):
+    def loss_function(self, disc_expert_output, disc_model_output):
         pass
