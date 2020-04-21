@@ -1,5 +1,7 @@
 import os
 from util.datasets import Datasets
+from skimage import io
+
 
 UNTOUCHED_TRAIN = './data/train/untouched'
 EDITED_TRAIN = './data/train/edited'
@@ -10,6 +12,17 @@ EDITED_TEST = './data/test/edited'
 
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
+
+
+def show_sample():
+	td = Datasets(UNTOUCHED_TRAIN, EDITED_TRAIN, 'train')
+
+	for f in td.data.take(1):
+		io.imshow(f[0].numpy())
+		io.show()
+
+		io.imshow(f[1].numpy())
+		io.show()
 
 
 def test_train_dataset():
@@ -45,4 +58,4 @@ def test_evaluate_dataset():
 
 
 if __name__ == '__main__':
-	test_evaluate_dataset()
+	show_sample()

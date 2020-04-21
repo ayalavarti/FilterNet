@@ -7,7 +7,7 @@ import nn.hyperparameters as hp
 from os import listdir, getcwd
 from os.path import isfile, join
 from copy import deepcopy as cp
-from skimage import io
+
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 
@@ -15,9 +15,9 @@ os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 class Datasets:
 	"""
 	Class for containing the training and test sets as well as
-    other useful data-related information. Contains the functions
-    for pre-processing.
-    """
+	other useful data-related information. Contains the functions
+	for pre-processing.
+	"""
 
 	def __init__(self, untouched_dir, edited_dir, task, editor='c'):
 		self.task = task
@@ -33,6 +33,8 @@ class Datasets:
 		self._calc_mean_and_std(self.u_dir, "u")
 
 		self._create_img_lists(editor)
+		self.new_img_shape = tf.cast((hp.img_size, hp.img_size), tf.int32)
+
 
 		self.data = self._get_data() if task == 'evaluate' else self._get_dual_data()
 
@@ -56,22 +58,26 @@ class Datasets:
 			return untouched_images.intersection(edited_images)
 		return untouched_images
 
-	@staticmethod
-	def _dual_input_parser(u_path, e_path):
+	def _dual_input_parser(self, u_path, e_path):
 		u_img = tf.io.read_file(u_path)
-		u_img = tf.io.decode_image(u_img, channels=3, dtype=tf.float32)
+		u_img = tf.io.decode_jpeg(u_img, channels=3)
+		u_img = tf.image.convert_image_dtype(u_img, tf.float32)
+		u_img_new = tf.image.resize(u_img, self.new_img_shape)
 
 		e_img = tf.io.read_file(e_path)
-		e_img = tf.io.decode_image(e_img, channels=3, dtype=tf.float32)
+		e_img = tf.io.decode_jpeg(e_img, channels=3)
+		e_img = tf.image.convert_image_dtype(e_img, tf.float32)
+		e_img_new = tf.image.resize(e_img, self.new_img_shape)
 
-		return tf.convert_to_tensor([u_img, e_img])
+		return tf.convert_to_tensor([u_img_new, e_img_new])
 
-	@staticmethod
-	def _input_parser(u_path):
+	def _input_parser(self, u_path):
 		u_img = tf.io.read_file(u_path)
-		u_img = tf.io.decode_image(u_img, channels=3, dtype=tf.float32)
+		u_img = tf.io.decode_jpeg(u_img, channels=3)
+		u_img = tf.image.convert_image_dtype(u_img, tf.float32)
+		u_img_new = tf.image.resize(u_img, self.new_img_shape)
 
-		return tf.convert_to_tensor([u_img])
+		return tf.convert_to_tensor([u_img_new])
 
 	def _create_img_lists(self, h):
 		u_imgs = map(lambda x: join(self.u_dir, f"u-{x}"), self.file_list)
