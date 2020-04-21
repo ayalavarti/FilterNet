@@ -154,24 +154,26 @@ class Datasets:
 
 	def _get_dual_data(self):
 		"""
-		Returns a tf.data.Dataset containing tf.Tensors of shape
-			[2, hp.img_size, hp.img_size, 3]
+		Returns a tf.data.Dataset containing 5D tf.Tensors of shape
+			[hp.batch_size, 2, hp.img_size, hp.img_size, 3]
 		"""
 		# Set up tf.data.Dataset with image filepaths of untouched, edited images
 		# then map with self._dual_input_parser to convert filepaths to tf.Tensor
 		data = tf.data.Dataset.from_tensor_slices((self.u_imgs, self.e_imgs))
 		data = data.map(self._dual_input_parser)
+		data = data.batch(hp.batch_size)
 
 		return data
 
 	def _get_data(self):
 		"""
-		Returns a tf.data.Dataset containing tf.Tensors of shape
-			[1, hp.img_size, hp.img_size, 3]
+		Returns a tf.data.Dataset containing 5D tf.Tensors of shape
+			[hp.batch_size, 1, hp.img_size, hp.img_size, 3]
 		"""
 		# Set up tf.data.Dataset with image filepaths of untouched images
 		# then map with self._input_parser to convert filepath to tf.Tensor
 		data = tf.data.Dataset.from_tensor_slices(self.u_imgs)
 		data = data.map(self._input_parser)
+		data = data.batch(hp.batch_size)
 
 		return data
