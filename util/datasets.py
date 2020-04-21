@@ -25,21 +25,30 @@ class Datasets:
 		self.e_dir = join(edited_dir, editor.capitalize()) if edited_dir else None
 
 		# Set up file lists of raw images
-		self.file_list = list(self._image_file_list(self.u_dir, self.e_dir))
+		self.file_list = self._image_file_list(self.u_dir, self.e_dir)
 
 		# Mean and std for standardization
 		self.mean = np.zeros(3)
 		self.std = np.ones(3)
 		self._calc_mean_and_std(self.u_dir, "u")
 
-		self._create_img_lists(editor)
+		# Set up file path lists of both untouched and edited imamges
+		self._create_img_lists(h=editor)
 		self.new_img_shape = tf.cast((hp.img_size, hp.img_size), tf.int32)
 
-
+		# Set the dataset data attribute using the appropriate get_data func
 		self.data = self._get_data() if task == 'evaluate' else self._get_dual_data()
 
 	@staticmethod
 	def _image_file_list(untouched_dir, edited_dir):
+		"""
+		Returns the list of overlapping images from the provided lists of
+		image files.
+
+		:param untouched_dir: list of untouched image file paths
+		:param edited_dir: list of edited image file paths
+		:return: list of overlapping images
+		"""
 		def valid_img_dir(x, f):
 			return isfile(join(x, f)) and f.endswith(".jpg")
 
@@ -55,10 +64,19 @@ class Datasets:
 			if untouched_images - edited_images != set():
 				print("Non overlapping images detected. Only using image pairs"
 					  "with overlapping untouched and edited images")
-			return untouched_images.intersection(edited_images)
-		return untouched_images
+			return list(untouched_images.intersection(edited_images))
+		return list(untouched_images)
 
 	def _dual_input_parser(self, u_path, e_path):
+		"""
+		Input parser for tf.data.Dataset containing both untouched and edited
+		images.
+
+		:param u_path: filepath to single untouched image
+		:param e_path: filepath to single edited image
+		:return: tf.tensor of shape [2, hp.img_size, hp.img_size, 3] of both
+				untouched, edited images
+		"""
 		u_img = tf.io.read_file(u_path)
 		u_img = tf.io.decode_jpeg(u_img, channels=3)
 		u_img = tf.image.convert_image_dtype(u_img, tf.float32)
@@ -72,6 +90,13 @@ class Datasets:
 		return tf.convert_to_tensor([u_img_new, e_img_new])
 
 	def _input_parser(self, u_path):
+		"""
+		Input parser for tf.data.Dataset containing only untouched images.
+
+		:param u_path: filepath to single untouched image
+		:return: tf.tensor of shape [1, hp.img_size, hp.img_size, 3] of
+				untouched image
+		"""
 		u_img = tf.io.read_file(u_path)
 		u_img = tf.io.decode_jpeg(u_img, channels=3)
 		u_img = tf.image.convert_image_dtype(u_img, tf.float32)
@@ -79,7 +104,11 @@ class Datasets:
 
 		return tf.convert_to_tensor([u_img_new])
 
-	def _create_img_lists(self, h):
+	def _create_img_lists(self, h=None):
+		"""
+		Creates lists of untouched and (optionally) edited image file paths
+		:param h: header for when processing edited image directory
+		"""
 		u_imgs = map(lambda x: join(self.u_dir, f"u-{x}"), self.file_list)
 		self.u_imgs = tf.constant(list(u_imgs))
 
@@ -124,12 +153,24 @@ class Datasets:
 		return (img - self.mean) / self.std
 
 	def _get_dual_data(self):
+		"""
+		Returns a tf.data.Dataset containing tf.Tensors of shape
+			[2, hp.img_size, hp.img_size, 3]
+		"""
+		# Set up tf.data.Dataset with image filepaths of untouched, edited images
+		# then map with self._dual_input_parser to convert filepaths to tf.Tensor
 		data = tf.data.Dataset.from_tensor_slices((self.u_imgs, self.e_imgs))
 		data = data.map(self._dual_input_parser)
 
 		return data
 
 	def _get_data(self):
+		"""
+		Returns a tf.data.Dataset containing tf.Tensors of shape
+			[1, hp.img_size, hp.img_size, 3]
+		"""
+		# Set up tf.data.Dataset with image filepaths of untouched images
+		# then map with self._input_parser to convert filepath to tf.Tensor
 		data = tf.data.Dataset.from_tensor_slices(self.u_imgs)
 		data = data.map(self._input_parser)
 
