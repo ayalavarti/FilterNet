@@ -4,67 +4,97 @@ import numpy as np
 from PIL import Image
 import tensorflow as tf
 import nn.hyperparameters as hp
+from os import listdir, getcwd
+from os.path import isfile, join
+from copy import deepcopy as cp
+from skimage import io
+
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 
 
-
-class Datasets():
-	""" Class for containing the training and test sets as well as
+class Datasets:
+	"""
+	Class for containing the training and test sets as well as
     other useful data-related information. Contains the functions
-    for preprocessing.
-
-    task: used if we want to do different preprocesses, with different applications
+    for pre-processing.
     """
 
-	def __init__(self, untouched_dir, edited_dir, train):
+	def __init__(self, untouched_dir, edited_dir, task, editor='c'):
+		self.task = task
+		self.u_dir = untouched_dir
+		self.e_dir = join(edited_dir, editor.capitalize()) if edited_dir else None
 
-		if train is "train":
-			self.train = True
-		else:
-			self.train = False
-
-		self.untouched_dir = untouched_dir
-		self.edited_dir = edited_dir
+		# Set up file lists of raw images
+		self.file_list = list(self._image_file_list(self.u_dir, self.e_dir))
 
 		# Mean and std for standardization
-		self.mean = np.zeros((3,))
-		self.std = np.ones((3,))
-		self.calc_mean_and_std()
+		self.mean = np.zeros(3)
+		self.std = np.ones(3)
+		self._calc_mean_and_std(self.u_dir, "u")
 
-		# Setup data generators
-		if self.train:
-			self.data = self.get_data(self.data_path, True, True)
-		if not self.train:
-			self.data = self.get_data(self.data_path, False, False)
+		self._create_img_lists(editor)
 
-	def calc_mean_and_std(self):
-		""" Calculate mean and standard deviation of a sample of the
-        training dataset for standardization.
+		self.data = self._get_data() if task == 'evaluate' else self._get_dual_data()
 
-        Arguments: none
+	@staticmethod
+	def _image_file_list(untouched_dir, edited_dir):
+		def valid_img_dir(x, f):
+			return isfile(join(x, f)) and f.endswith(".jpg")
 
-        Returns: none
+		def find_images(x):
+			files = [f.split('-')[1] for f in listdir(x) if valid_img_dir(x, f)]
+			return set(files)
+
+		untouched_images = find_images(untouched_dir)
+
+		if edited_dir:
+			edited_images = find_images(edited_dir)
+
+			if untouched_images - edited_images != set():
+				print("Non overlapping images detected. Only using image pairs"
+					  "with overlapping untouched and edited images")
+			return untouched_images.intersection(edited_images)
+		return untouched_images
+
+	@staticmethod
+	def _dual_input_parser(u_path, e_path):
+		u_img = tf.io.read_file(u_path)
+		u_img = tf.io.decode_image(u_img, channels=3, dtype=tf.float32)
+
+		e_img = tf.io.read_file(e_path)
+		e_img = tf.io.decode_image(e_img, channels=3, dtype=tf.float32)
+
+		return tf.convert_to_tensor([u_img, e_img])
+
+	@staticmethod
+	def _input_parser(u_path):
+		u_img = tf.io.read_file(u_path)
+		u_img = tf.io.decode_image(u_img, channels=3, dtype=tf.float32)
+
+		return tf.convert_to_tensor([u_img])
+
+	def _create_img_lists(self, h):
+		u_imgs = map(lambda x: join(self.u_dir, f"u-{x}"), self.file_list)
+		self.u_imgs = tf.constant(list(u_imgs))
+
+		if self.e_dir:
+			e_imgs = map(lambda x: join(self.e_dir, f"{h}-{x}"), self.file_list)
+			self.e_imgs = tf.constant(list(e_imgs))
+
+	def _calc_mean_and_std(self, file_path, header):
+		"""
+		Calculate mean and standard deviation of a sample of the dataset
+		for standardization.
         """
-
-		# Get list of all images in training directory
-		file_list = []
-		for root, _, files in os.walk(os.path.join(self.data_path, "train/")):
-			for name in files:
-				if name.endswith(".jpg"):
-					file_list.append(os.path.join(root, name))
-
-		# Shuffle filepaths
+		file_list = cp(self.file_list)
 		random.shuffle(file_list)
 
-		# Take sample of file paths
 		file_list = file_list[:hp.preprocess_sample_size]
-
-		# Allocate space in memory for images
 		data_sample = np.zeros(
 			(hp.preprocess_sample_size, hp.img_size, hp.img_size, 3))
 
-		# Import images
-		for i, file_path in enumerate(file_list):
-			img = Image.open(file_path)
+		for i, f in enumerate(file_list):
+			img = Image.open(f"{getcwd()}/{file_path}/{header}-{f}")
 			img = img.resize((hp.img_size, hp.img_size))
 			img = np.array(img, dtype=np.float32)
 			img /= 255.
@@ -75,62 +105,26 @@ class Datasets():
 
 			data_sample[i] = img
 
-		for i in range(0, 3):
-			self.mean[i] = np.mean(data_sample[:, :, :, i])
-			self.std[i] = np.std(data_sample[:, :, :, i])
+		self.mean = np.mean(data_sample, axis=(0, 1, 2))
+		self.std = np.std(data_sample, axis=(0, 1, 2))
 
-	def standardize(self, img):
-		""" Function for applying standardization to an input image.
+	def _standardize(self, img):
+		"""
+		Function for applying standardization to an input image.
 
-        Arguments:
-            img - numpy array of shape (image size, image size, 3)
-
-        Returns:
-            img - numpy array of shape (image size, image size, 3)
-        """
+		:param img: numpy array of shape (image size, image size, 3)
+		:return: img - numpy array of shape (image size, image size, 3)
+		"""
 		return (img - self.mean) / self.std
 
-	def preprocess_fn(self, img):
-		""" Preprocess function. """
-		img = img / 255.
-		img = self.standardize(img)
-		return img
+	def _get_dual_data(self):
+		data = tf.data.Dataset.from_tensor_slices((self.u_imgs, self.e_imgs))
+		data = data.map(self._dual_input_parser)
 
-	def get_data(self, path, shuffle, augment):
-		""" Returns an image data generator which can be iterated
-        through for images and corresponding class labels.
+		return data
 
-        Arguments:
-            path - Filepath of the data being imported, such as
-                   "../data/train" or "../data/test"
-            is_vgg - Boolean value indicating whether VGG preprocessing
-                     should be applied to the images.
-            shuffle - Boolean value indicating whether the data should
-                      be randomly shuffled.
-            augment - Boolean value indicating whether the data should
-                      be augmented or not.
+	def _get_data(self):
+		data = tf.data.Dataset.from_tensor_slices(self.u_imgs)
+		data = data.map(self._input_parser)
 
-        Returns:
-            An iterable image-batch generator
-        """
-
-		if augment:
-			data_gen = tf.keras.preprocessing.image.ImageDataGenerator(
-				rotation_range=5,
-				width_shift_range=0.1,
-				height_shift_range=0.1,
-				horizontal_flip=True,
-				preprocessing_function=self.preprocess_fn)
-		else:
-			data_gen = tf.keras.preprocessing.image.ImageDataGenerator(
-				preprocessing_function=self.preprocess_fn)
-
-		# HAVE TO FIX THIS TO ACCOUNT FOR UNTOUCHED AND TOUCHED
-		data_gen = data_gen.flow_from_directory(
-			path,
-			target_size=(hp.img_size, hp.img_size),
-			class_mode=None,
-			batch_size=hp.batch_size,
-			shuffle=shuffle)
-
-		return data_gen
+		return data
