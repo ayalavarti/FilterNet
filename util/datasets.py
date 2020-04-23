@@ -27,11 +27,6 @@ class Datasets:
 		# Set up file lists of raw images
 		self.file_list = self._image_file_list(self.u_dir, self.e_dir)
 
-		# Mean and std for standardization
-		self.mean = np.zeros(3)
-		self.std = np.ones(3)
-		self._calc_mean_and_std(self.u_dir, "u")
-
 		# Set up file path lists of both untouched and edited imamges
 		self._create_img_lists(h=editor)
 		self.new_img_shape = tf.cast((hp.img_size, hp.img_size), tf.int32)
@@ -115,42 +110,6 @@ class Datasets:
 		if self.e_dir:
 			e_imgs = map(lambda x: join(self.e_dir, f"{h}-{x}"), self.file_list)
 			self.e_imgs = tf.constant(list(e_imgs))
-
-	def _calc_mean_and_std(self, file_path, header):
-		"""
-		Calculate mean and standard deviation of a sample of the dataset
-		for standardization.
-        """
-		file_list = cp(self.file_list)
-		random.shuffle(file_list)
-
-		file_list = file_list[:hp.preprocess_sample_size]
-		data_sample = np.zeros(
-			(hp.preprocess_sample_size, hp.img_size, hp.img_size, 3))
-
-		for i, f in enumerate(file_list):
-			img = Image.open(f"{getcwd()}/{file_path}/{header}-{f}")
-			img = img.resize((hp.img_size, hp.img_size))
-			img = np.array(img, dtype=np.float32)
-			img /= 255.
-
-			# Grayscale -> RGB
-			if len(img.shape) == 2:
-				img = np.stack([img, img, img], axis=-1)
-
-			data_sample[i] = img
-
-		self.mean = np.mean(data_sample, axis=(0, 1, 2))
-		self.std = np.std(data_sample, axis=(0, 1, 2))
-
-	def _standardize(self, img):
-		"""
-		Function for applying standardization to an input image.
-
-		:param img: numpy array of shape (image size, image size, 3)
-		:return: img - numpy array of shape (image size, image size, 3)
-		"""
-		return (img - self.mean) / self.std
 
 	def _get_dual_data(self):
 		"""
