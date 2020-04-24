@@ -6,10 +6,8 @@ from skimage import io
 UNTOUCHED_TRAIN = './sample_data/train/untouched'
 EDITED_TRAIN = './sample_data/train/edited'
 
-
 UNTOUCHED_TEST = './sample_data/test/untouched'
 EDITED_TEST = './sample_data/test/edited'
-
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 

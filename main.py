@@ -152,6 +152,10 @@ def main():
 				# train here!
 				dataset = Datasets(
 					ARGS.untouched_dir, ARGS.edited_dir, "train", ARGS.editor)
+
+				for a in dataset.data:
+					generator(a[0, 0])
+
 				pass
 
 			if ARGS.command == 'test':
