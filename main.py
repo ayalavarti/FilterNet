@@ -65,8 +65,14 @@ def parse_args():
 	tn.add_argument(
 		"--edited-dir",
 		type=valid_dir,
-		default=os.getcwd() + "/data/train/edited/C",
+		default=os.getcwd() + "/data/train/edited",
 		help="Directory of expert edited images for training")
+
+	tn.add_argument(
+		"--editor",
+		choices=['A', 'B', 'C', 'D', 'E'],
+		default='C',
+		help="Which editor images to use for training")
 
 	# Subparser for test command
 	ts = subparsers.add_parser(
@@ -84,6 +90,12 @@ def parse_args():
 		type=valid_dir,
 		default=os.getcwd() + "/data/test/edited",
 		help="Directory of expert edited images for testing")
+
+	ts.add_argument(
+		"--editor",
+		choices=['C'],
+		default='C',
+		help="Which editor images to use for testing")
 
 	# Subparser for evaluate command
 	ev = subparsers.add_parser(
@@ -138,12 +150,14 @@ def main():
 		with tf.device("/device:" + ARGS.device):
 			if ARGS.command == "train":
 				# train here!
-				dataset = Datasets(ARGS.untouched_dir, ARGS.edited_dir, "train")
+				dataset = Datasets(
+					ARGS.untouched_dir, ARGS.edited_dir, "train", ARGS.editor)
 				pass
 
 			if ARGS.command == 'test':
 				# test here!
-				dataset = Datasets(ARGS.untouched_dir, ARGS.edited_dir, "test")
+				dataset = Datasets(
+					ARGS.untouched_dir, ARGS.edited_dir, "test", ARGS.editor)
 				pass
 
 			if ARGS.command == 'evaluate':
