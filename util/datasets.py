@@ -26,6 +26,7 @@ class Datasets:
 
 		# Set up file lists of raw images
 		self.file_list = self._image_file_list(self.u_dir, self.e_dir)
+		self.data_size = len(self.file_list)
 
 		# Set up file path lists of both untouched and edited imamges
 		self._create_img_lists(h=editor)
@@ -72,17 +73,14 @@ class Datasets:
 		:return: tf.tensor of shape [2, hp.img_size, hp.img_size, 3] of both
 				untouched, edited images
 		"""
-		u_img = tf.io.read_file(u_path)
-		u_img = tf.io.decode_jpeg(u_img, channels=3)
-		u_img = tf.image.convert_image_dtype(u_img, tf.float32)
-		u_img_new = tf.image.resize(u_img, self.new_img_shape)
+		random_flip = tf.random.uniform([1]) > 0.5
 
-		e_img = tf.io.read_file(e_path)
-		e_img = tf.io.decode_jpeg(e_img, channels=3)
-		e_img = tf.image.convert_image_dtype(e_img, tf.float32)
-		e_img_new = tf.image.resize(e_img, self.new_img_shape)
+		u_img = self._input_parser(u_path)
+		e_img = self._input_parser(e_path)
 
-		return tf.convert_to_tensor([u_img_new, e_img_new])
+		c_tensor = tf.concat([u_img, e_img], 0)
+
+		return tf.image.flip_left_right(c_tensor) if random_flip else c_tensor
 
 	def _input_parser(self, u_path):
 		"""
@@ -108,6 +106,7 @@ class Datasets:
 		self.u_imgs = tf.constant(list(u_imgs))
 
 		if self.e_dir:
+			np.random.shuffle(self.file_list)
 			e_imgs = map(lambda x: join(self.e_dir, f"{h}-{x}"), self.file_list)
 			self.e_imgs = tf.constant(list(e_imgs))
 
