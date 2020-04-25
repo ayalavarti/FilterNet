@@ -9,7 +9,6 @@ from skimage.color import rgb2hsv, hsv2rgb
 
 # from matplotlib.colors import hsv_to_rgb  # skimage didn't have one for some reason
 # pip install opencv-python
-from util.datasets import Datasets
 
 
 def relu(vector):
@@ -99,7 +98,7 @@ def highlights(hsv_photo, parameter):
     values = hsv_photo[:,:,2]
     highlights_mask = sigmoid(5 * (values - 1))
 
-    return np.array([
+    return np.dstack([
         hsv_photo[:,:,0], hsv_photo[:,:,1],
         1 - (1 - values) * (1 - highlights_mask * parameter * 5)
     ])
@@ -110,7 +109,7 @@ def shadows(hsv_photo, parameter):
     values = hsv_photo[:,:,2]
     shadows_mask = 1 - sigmoid(5 * values)
 
-    return np.array([
+    return np.dstack([
         hsv_photo[:,:,0], hsv_photo[:,:,1], values * (1 + shadows_mask * parameter * 5)
     ])
 
@@ -121,7 +120,7 @@ def vibrance(hsv_photo, parameter):
     sat = hsv_photo[:, :, 1]
     vibrance_flag = -sigmoid((sat - 0.5) * 10) + 1
 
-    return np.array([
+    return np.dstack([
         hsv_photo[:,:,0],
         sat * vibrance * vibrance_flag + sat * (1 - vibrance_flag),
         hsv_photo[:,:,2]
@@ -136,53 +135,54 @@ def saturation(hsv_photo, parameter):
     sat_array = relu(sat_array)
     sat_array = 1 - relu(1 - sat_array)
 
-    return np.array([hsv_photo[:,:,0], sat_array, hsv_photo[:,:,2]])
+    return np.dstack([hsv_photo[:,:,0], sat_array, hsv_photo[:,:,2]])
 
 
 class PhotoEditor():
 
     # create constants for the photoeditor parameters by adading to nn > hyperparams
-    def __init__(self):
-        self.edit_funcs = {
-            1: clarity, 2: contrast, 3: exposure, 4: temp, 5: tint, 6: whites, 7: blacks,
-            8: highlights, 9: shadows, 10: vibrance, 11: saturation
-        }
+    # def __init__(self):
+
 
     def __call__(self, photos, parameters):
         # does this list have just one photo?
-        for photo in photos: 
-            for i in self.edit_funcs.values():
-                if (i == exposure) or (i == temperature) or (i == tint):  # for exposure, temperature, and tint
-                    editted = self.edit_funcs.get(i)(sigmoid_inversed(photo),
-                                                parameters[i])
-                    photo = sigmoid(editted)
-                elif (i == clarity) or (i == contrast):  # for clarity and contrast
-                    self.edit_funcs.get(i)(photo, parameters[i])
+        editted = np.zeros(np.shape(photos))
+        for photo in photos:
+            for index, param in enumerate(parameters):
+                if (param == exposure) or (param == temp) or (param == tint):  # for exposure, temperature, and tint
+                    editted[index,:,:,:] = photo
+
+                    #     param(sigmoid_inversed(photo),
+                    #                             parameters[param])
+                    # photo = sigmoid(editted)
+                elif (param == clarity) or (param == contrast):  # for clarity and contrast
+                    editted[index,:,:,:] = param(photo, parameters[param])
                 else:  # hsv conversions
-                    hsv_edit = self.edit_funcsget(i)(rgb2hsv(photo), parameters[i])
+                    hsv_edit = param(rgb2hsv(photo), parameters[param])
                     # note: assumes that our pictures have had values from [0, 1]
-                    photo = hsv2rgb(hsv_edit)
-        return 
+                    test = hsv2rgb(hsv_edit)
+                    editted[index,:,:,:] = test
+        return
 
 
-if __name__ == "__main__":
-    editor = PhotoEditor()
-    UNTOUCHED_TRAIN = './sample_data/train/untouched'
-    EDITED_TRAIN = './sample_data/train/edited'
-
-    td = Datasets(UNTOUCHED_TRAIN, EDITED_TRAIN, 'train')
-    for b in td.data:
-        npImage = b[0,0,:,:,:].numpy()
-        hsv = rgb2hsv(npImage)
-
-        #test_image = img_as_float32(io.imread(npImage))
-        # print(test_image[0, 0, 0])
-        # hsv_edit = vibrance(rgb2hsv(test_image[:, :, :3]), 0.1)
-        # print(rgb2hsv(test_image[:, :, :3]).shape)
-        # note: assumes that our pictures have had values from [0, 1]
-        photo = whites(hsv, 0.5)
-        photo = hsv2rgb(photo)
-
-        io.imsave("./output.png", photo.copy())
-        print("here")
-        break
+# if __name__ == "__main__":
+#     editor = PhotoEditor()
+#     UNTOUCHED_TRAIN = './sample_data/train/untouched'
+#     EDITED_TRAIN = './sample_data/train/edited'
+#
+#     td = Datasets(UNTOUCHED_TRAIN, EDITED_TRAIN, 'train')
+#     for b in td.data:
+#         npImage = b[0,0,:,:,:].numpy()
+#         hsv = rgb2hsv(npImage)
+#
+#         #test_image = img_as_float32(io.imread(npImage))
+#         # print(test_image[0, 0, 0])
+#         # hsv_edit = vibrance(rgb2hsv(test_image[:, :, :3]), 0.1)
+#         # print(rgb2hsv(test_image[:, :, :3]).shape)
+#         # note: assumes that our pictures have had values from [0, 1]
+#         photo = whites(hsv, 0.5)
+#         photo = hsv2rgb(photo)
+#
+#         io.imsave("./output.png", photo.copy())
+#         print("here")
+#         break

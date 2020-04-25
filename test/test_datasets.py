@@ -1,6 +1,9 @@
 import os
 from util.datasets import Datasets
 from skimage import io
+import nn.hyperparameters as hp
+from util.lightroom.editor import PhotoEditor
+import numpy as np
 
 UNTOUCHED_TRAIN = './sample_data/train/untouched'
 EDITED_TRAIN = './sample_data/train/edited'
@@ -26,15 +29,10 @@ def test_lightroom():
     td = Datasets(UNTOUCHED_TRAIN, EDITED_TRAIN, 'train')
 
     for b in td.data:
-        print(b.shape)
-        # b[:, 0] is the 4D list of images
-
-        assert (b.shape[0] == 10)
-        # Both images
-        assert (b.shape[1] == 2)
-        # 3 channels
-        assert (b.shape[-1] == 3)
-
+        raw_photos = b.numpy()[:,1,:,:,:]
+        editor = PhotoEditor()
+        photos = editor(raw_photos, hp.parameters)
+        assert (np.array_equal(raw_photos, photos) == False)
 
 def test_train_dataset():
     td = Datasets(UNTOUCHED_TRAIN, EDITED_TRAIN, 'train')
@@ -87,4 +85,5 @@ def test_evaluate_dataset():
 
 
 if __name__ == '__main__':
-    show_sample()
+    # show_sample()
+    test_lightroom()
