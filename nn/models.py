@@ -5,6 +5,7 @@ import nn.hyperparameters as hp
 from tensorflow.keras.layers import Conv2D, Conv1D, MaxPool2D, Dropout, \
     Flatten, Dense, BatchNormalization, AveragePooling2D
 from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.losses import categorical_crossentropy
 
 
 class Generator(tf.keras.Model):
@@ -14,12 +15,14 @@ class Generator(tf.keras.Model):
         self.K = hp.K
         self.batch_size = hp.batch_size
 
-        init = tf.keras.initializers.RandomNormal
+        # Loss hyperparameters
+        self.alpha = hp.alpha
+        self.beta = hp.beta
 
         # Adam optimizer with 1e-4 lr
         self.optimizer = Adam(learning_rate=hp.learning_rate)
         # LeakyReLU activation with alpha=0.2
-        self.leaky_relu = LeakyReLU(hp.alpha)
+        self.leaky_relu = LeakyReLU(hp.lr_alpha)
 
         # ====== Shared convolution layers ======
         self.conv0 = Conv2D(16, (3, 3), strides=(2, 2), padding='same',
@@ -70,7 +73,7 @@ class Generator(tf.keras.Model):
         # Return policy (probabilities, actions), value
         return self.get_policy(h, det=testing), self.get_value(h)
 
-    # @tf.function
+    @tf.function
     def get_policy(self, h, det=False):
         # Global average poling and transpose
         p = self.avg_pool(h)
@@ -105,10 +108,35 @@ class Generator(tf.keras.Model):
         return self.dense_1(self.flatten(image))
 
     @tf.function
-    def loss_function(self, disc_model_output):
-        return tf.reduce_mean(
-            tf.keras.losses.binary_crossentropy(tf.ones([hp.batch_size, 1]),
-                                                disc_model_output))
+    def loss_function(self, state, y_model, d_model):
+        # Reward
+        R = d_model - self.alpha * tf.reduce_mean(tf.square(state - y_model))
+
+        # ========= A2C RL training =========
+        policy, value = self.call(state)
+        prob, act = policy
+
+        # ======= Value Loss =======
+        advantage = R - value
+        value_loss = advantage ** 2
+
+        # ======= Policy Loss =======
+        # One hot encode actions for all L steps
+        action_one_hot = tf.one_hot(act, self.L, dtype=tf.float32)
+        # Entropy of filter's prob dist for each img, sum over filters and steps
+        entropy = tf.reduce_sum(prob * tf.math.log(prob + 1e-20), axis=[1, 2])
+        entropy = tf.reshape(entropy, (-1, 1))
+
+        # Cross-entropy for multi-class exclusive problem sum down all filters
+        policy_loss = tf.reduce_sum(categorical_crossentropy(
+            action_one_hot, prob), axis=1, keepdims=True)
+
+        # Stop gradient flow from value network with advantage calculation
+        policy_loss *= tf.stop_gradient(advantage)
+        policy_loss -= self.beta * entropy
+
+        total_loss = tf.reduce_mean((0.5 * value_loss + policy_loss))
+        return total_loss
 
 
 class Discriminator(tf.keras.Model):
