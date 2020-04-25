@@ -6,6 +6,7 @@ import sys
 from skimage.restoration import denoise_bilateral
 from skimage.color import rgb2hsv, hsv2rgb
 
+
 # from matplotlib.colors import hsv_to_rgb  # skimage didn't have one for some reason
 # pip install opencv-python
 from util.datasets import Datasets
@@ -80,39 +81,37 @@ def tint(sig_inv_photo, parameter):
 def whites(hsv_photo, parameter):
     ''' requires hsv '''
     white = parameter + 1
-    new_values = hsv_photo[:, :, 2] + (hsv_photo[:, :, 2] *
-                                       (np.sqrt(white) - 1) * 0.2)
-    toReturn = np.dstack([hsv_photo[:, :, 0], hsv_photo[:, :, 1], new_values])
+    new_values = hsv_photo[:,:,2] + (hsv_photo[:,:,2] * (np.sqrt(white) - 1) * 0.2)
+    toReturn = np.dstack([hsv_photo[:,:,0], hsv_photo[:,:,1], new_values])
     return toReturn
 
 
 def blacks(hsv_photo, parameter):
     ''' requires hsv '''
     black = parameter + 1
-    new_values = hsv_photo[:, :, 2] + ((1 - hsv_photo[:, :, 2]) *
-                                       (np.sqrt(black) - 1) * 0.2)
-    return np.dstack([hsv_photo[:, :, 0], hsv_photo[:, :, 1], new_values])
+    new_values = hsv_photo[:,:,2] + ((1 - hsv_photo[:,:,2]) *
+                                 (np.sqrt(black) - 1) * 0.2)
+    return np.dstack([hsv_photo[:,:,0], hsv_photo[:,:,1], new_values])
 
 
 def highlights(hsv_photo, parameter):
     ''' requires hsv '''
-    values = hsv_photo[:, :, 2]
+    values = hsv_photo[:,:,2]
     highlights_mask = sigmoid(5 * (values - 1))
 
     return np.array([
-        hsv_photo[:, :, 0], hsv_photo[:, :, 1],
+        hsv_photo[:,:,0], hsv_photo[:,:,1],
         1 - (1 - values) * (1 - highlights_mask * parameter * 5)
     ])
 
 
 def shadows(hsv_photo, parameter):
     ''' requires hsv '''
-    values = hsv_photo[:, :, 2]
+    values = hsv_photo[:,:,2]
     shadows_mask = 1 - sigmoid(5 * values)
 
     return np.array([
-        hsv_photo[:, :, 0], hsv_photo[:, :, 1],
-        values * (1 + shadows_mask * parameter * 5)
+        hsv_photo[:,:,0], hsv_photo[:,:,1], values * (1 + shadows_mask * parameter * 5)
     ])
 
 
@@ -123,21 +122,21 @@ def vibrance(hsv_photo, parameter):
     vibrance_flag = -sigmoid((sat - 0.5) * 10) + 1
 
     return np.array([
-        hsv_photo[:, :, 0],
+        hsv_photo[:,:,0],
         sat * vibrance * vibrance_flag + sat * (1 - vibrance_flag),
-        hsv_photo[:, :, 2]
+        hsv_photo[:,:,2]
     ])
 
 
 def saturation(hsv_photo, parameter):
     ''' requires hsv '''
     sat = parameter + 1
-    sat_array = hsv_photo[:, :, 1]
+    sat_array = hsv_photo[:,:,1]
     sat_array = sat_array * sat
     sat_array = relu(sat_array)
     sat_array = 1 - relu(1 - sat_array)
 
-    return np.array([hsv_photo[:, :, 0], sat_array, hsv_photo[:, :, 2]])
+    return np.array([hsv_photo[:,:,0], sat_array, hsv_photo[:,:,2]])
 
 
 class PhotoEditor():
@@ -173,15 +172,15 @@ if __name__ == "__main__":
 
     td = Datasets(UNTOUCHED_TRAIN, EDITED_TRAIN, 'train')
     for b in td.data:
-        npImage = b[0, 0, :, :, :].numpy()
+        npImage = b[0,0,:,:,:].numpy()
         hsv = rgb2hsv(npImage)
 
-        # test_image = img_as_float32(io.imread("./c-4010.jpg"))
+        #test_image = img_as_float32(io.imread(npImage))
         # print(test_image[0, 0, 0])
         # hsv_edit = vibrance(rgb2hsv(test_image[:, :, :3]), 0.1)
         # print(rgb2hsv(test_image[:, :, :3]).shape)
-        # # note: assumes that our pictures have had values from [0, 1]
-        # photo = blacks(hsv, 0.5)
+        # note: assumes that our pictures have had values from [0, 1]
+        photo = whites(hsv, 0.5)
         photo = hsv2rgb(photo)
 
         io.imsave("./output.png", photo.copy())
