@@ -23,6 +23,6 @@ parameters = {
             E.highlights: .2,
             E.shadows: .2,
             E.vibrance: .2,
-           # E.saturation: .2
+            E.saturation: .2
         }
 

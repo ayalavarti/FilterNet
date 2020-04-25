@@ -147,8 +147,8 @@ class PhotoEditor():
     def __call__(self, photos, parameters):
         # does this list have just one photo?
         editted = np.zeros(np.shape(photos))
-        for photo in photos:
-            for index, param in enumerate(parameters):
+        for index, photo in enumerate(photos):
+            for param in parameters:
                 if (param == exposure) or (param == temp) or (param == tint):  # for exposure, temperature, and tint
                     editted[index,:,:,:] = photo
 
@@ -156,13 +156,13 @@ class PhotoEditor():
                     #                             parameters[param])
                     # photo = sigmoid(editted)
                 elif (param == clarity) or (param == contrast):  # for clarity and contrast
-                    editted[index,:,:,:] = param(photo, parameters[param])
+                    photo = param(photo, parameters[param])
                 else:  # hsv conversions
                     hsv_edit = param(rgb2hsv(photo), parameters[param])
                     # note: assumes that our pictures have had values from [0, 1]
-                    test = hsv2rgb(hsv_edit)
-                    editted[index,:,:,:] = test
-        return
+                    photo = hsv2rgb(hsv_edit)
+            editted[index,:,:,:] = photo
+        return editted
 
 
 # if __name__ == "__main__":
