@@ -174,23 +174,27 @@ class Discriminator(tf.keras.Model):
         v = self.dense_1(self.flatten(v))
         return v
 
+    def _interpolate(self, a, b):
+        shape = [self.batch_size, 1, 1, 1]
+        eps = tf.random.uniform(shape=shape, minval=0., maxval=1.)
+        return a + eps * (b - a)
+
+    def _gradient_penalty(self, expert, model):
+        x = self._interpolate(expert, model)
+        # Use tf.GradientTape to find gradient of d_int wrt interpolated_image
+        with tf.GradientTape() as tape:
+            tape.watch(x)
+            d_int = self.call(x)
+
+        grad_interpolated = tape.gradient(d_int, x)
+        grad_norm = tf.sqrt(1e-8 + tf.reduce_sum(tf.square(grad_interpolated), axis=[1, 2, 3]))
+        gp = tf.reduce_mean((grad_norm - 1.) ** 2)
+        return gp
+
     @tf.function
     def loss_function(self, x_model, x_expert, d_model, d_expert):
         # WGAN discriminator loss
         disc_loss = tf.reduce_sum(d_model) - tf.reduce_sum(d_expert)
-
         # Gradient penalty
-        eps = tf.random.uniform([self.batch_size, 1, 1, 1], 0, 1)
-        interpolated_image = x_expert + eps * (x_model - x_expert)
-
-        # Use tf.GradientTape to find gradient of d_int wrt interpolated_image
-        with tf.GradientTape() as tape:
-            tape.watch(interpolated_image)
-            d_int = self.call(interpolated_image)
-
-        grad_interpolated = tape.gradient(d_int, [interpolated_image])
-        grad_norm = tf.sqrt(1e-8 + tf.reduce_sum(tf.square(grad_interpolated),
-                                                 axis=[1, 2, 3]))
-        grad_penalty = tf.reduce_mean((grad_norm - 1.) ** 2)
-
-        return disc_loss + self.lda * grad_penalty
+        gp = self._gradient_penalty(x_expert, x_model)
+        return disc_loss + self.lda * gp
