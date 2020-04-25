@@ -1,5 +1,5 @@
 # Image size
-img_size = 64
+img_size = 128
 
 # Training parameters
 num_epochs = 50
@@ -11,3 +11,4 @@ momentum = 0.01
 L = 33
 K = 12
 alpha = 0.2
+lda = 10
