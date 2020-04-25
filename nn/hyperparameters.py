@@ -6,6 +6,10 @@ num_epochs = 50
 batch_size = 10
 learning_rate = 1e-4
 momentum = 0.01
+gen_update_freq = 1
+disc_update_freq = 1
+print_every_x_batches = 10
+save_every_x_batches = 10
 
 lr_alpha = 0.2
 
