@@ -1,10 +1,4 @@
-
-import numpy as np
-import math
-import sys
-from skimage.color import rgb2hsv
-from matplotlib.colors import hsv_to_rgb  # skimage didn't have one for some reason
-import cv2  # pip install opencv-python
+import cv2
 import numpy as np
 from skimage import io, img_as_ubyte, img_as_float32
 from skimage.color import rgb2hsv, hsv2rgb
@@ -31,7 +25,6 @@ def sigmoid_inversed(vector):  # basically the logit function
 def clarity(photo, parameter):
     # scaling the dimensions -- ask if this size is okay
     scale = max(photo.shape[:2]) / 512.0
-
     print(scale)
     # getting our parameter
     # parameters have to do with pixel diameter for filter, aand color space smoothing
@@ -63,9 +56,9 @@ def temp(photo, parameter):
 
     if parameter > 0:
         to_edit[:, :, 1] += parameter * 1.6
-        to_edit[:, :, 2] += parameter * 2
+        to_edit[:, :, 0] += parameter * 2
     else:
-        to_edit[:, :, 0] -= parameter * 2
+        to_edit[:, :, 2] -= parameter * 2
         to_edit[:, :, 1] -= parameter * 1
     return to_edit
 
@@ -75,9 +68,9 @@ def tint(photo, parameter):
     to_edit = sigmoid_inversed(photo)
     to_edit[:, :, 1] -= parameter * 1
     if parameter > 0:
-        to_edit[:, :, 2] += parameter * 1
+        to_edit[:, :, 0] += parameter * 1
     else:
-        to_edit[:, :, 0] -= parameter * 2
+        to_edit[:, :, 2] -= parameter * 2
 
     return to_edit
 
