@@ -114,13 +114,16 @@ class Generator(tf.keras.Model):
 class Discriminator(tf.keras.Model):
     def __init__(self):
         super(Discriminator, self).__init__()
+        # Loss hyperparameters
+        self.lda = hp.lda
+
         # Adam optimizer with 1e-4 lr
         # consider switching to RMSprop with no momentum and lr of 0.00005
         self.optimizer = Adam(learning_rate=hp.learning_rate)
+
         # LeakyReLU activation with alpha=0.2
-        self.leaky_relu = LeakyReLU(hp.alpha)
+        self.leaky_relu = LeakyReLU(hp.lr_alpha)
         self.batch_size = hp.batch_size
-        self.lda = hp.lda
 
         # ====== Discriminator layers ======
         self.conv1 = Conv2D(16, (3, 3), strides=(1, 1), padding='same')
@@ -144,8 +147,22 @@ class Discriminator(tf.keras.Model):
         return v
 
     @tf.function
-    def loss_function(self, disc_expert_output, disc_model_output):
-        real_loss = tf.reduce_mean(tf.keras.losses.binary_crossentropy(tf.ones([hp.batch_size, 1]), disc_expert_output))
-        fake_loss = tf.reduce_mean(
-            tf.keras.losses.binary_crossentropy(tf.zeros([hp.batch_size, 1]), disc_model_output))
-        return real_loss + fake_loss
+    def loss_function(self, x_model, x_expert, d_model, d_expert):
+        # WGAN discriminator loss
+        disc_loss = tf.reduce_sum(d_model) - tf.reduce_sum(d_expert)
+
+        # Gradient penalty
+        eps = tf.random.uniform([self.batch_size, 1, 1, 1], 0, 1)
+        interpolated_image = x_expert + eps * (x_model - x_expert)
+
+        # Use tf.GradientTape to find gradient of d_int wrt interpolated_image
+        with tf.GradientTape() as tape:
+            tape.watch(interpolated_image)
+            d_int = self.call(interpolated_image)
+
+        grad_interpolated = tape.gradient(d_int, [interpolated_image])
+        grad_norm = tf.sqrt(1e-8 + tf.reduce_sum(tf.square(grad_interpolated),
+                                                 axis=[1, 2, 3]))
+        grad_penalty = tf.reduce_mean((grad_norm - 1.) ** 2)
+
+        return disc_loss + self.lda * grad_penalty

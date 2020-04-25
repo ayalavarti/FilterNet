@@ -2,7 +2,6 @@ import os
 from util.datasets import Datasets
 from nn.models import Generator, Discriminator
 import nn.hyperparameters as hp
-import tensorflow as tf
 
 
 UNTOUCHED_TRAIN = './sample_data/train/untouched'
@@ -28,9 +27,22 @@ def test_discriminator_loss():
 	discriminator = Discriminator()
 	for b in td.data:
 		x_model, x_expert = b[:, 0], b[:, 1]
-		y_model, y_expert = discriminator(x_model), discriminator(x_expert)
+		d_model, d_expert = discriminator(x_model), discriminator(x_expert)
 
-		loss = discriminator.loss_function(x_model, x_expert, y_model, y_expert)
+		loss = discriminator.loss_function(x_model, x_expert, d_model, d_expert)
+		print(loss)
+		break
+
+
+def test_generator_loss():
+	generator = Generator()
+	discriminator = Discriminator()
+	for b in td.data:
+		x_model, x_expert = b[:, 0], b[:, 1]
+
+		d_model = discriminator(x_model)
+		loss = generator.loss_function(x_model, x_model, d_model)
+		print(loss)
 		break
 
 
@@ -47,4 +59,4 @@ def test_generator_model():
 
 
 if __name__ == '__main__':
-	test_discriminator_loss()
+	test_generator_loss()
