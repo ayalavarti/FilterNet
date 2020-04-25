@@ -74,6 +74,16 @@ def parse_args():
 		default='C',
 		help="Which editor images to use for training")
 
+	tn.add_argument(
+		"--print-every-x-batches",
+		type=int, default=hp.print_every_x_batches,
+		help="After how many batches you want to print")
+
+	tn.add_argument(
+		"--save-every-x-batches",
+		type=int, default=hp.save_every_x_batches,
+		help="After how many batches you want to save")
+
 	# Subparser for test command
 	ts = subparsers.add_parser(
 		"test", description="Test the model on the given test data")
@@ -121,11 +131,40 @@ def parse_args():
 ARGS = parse_args()
 
 
-def train():
-	pass
+def train(dataset, manager, generator, discriminator):
+	for e in ARGS.epochs:
+		batch_num = 0
+		for batch in dataset.data:
+			for i in range(hp.gen_update_freq):
+				with tf.GradientTape() as gen_tape:
+					x_model, x_expert = batch[:, 0], batch[:, 1]
+					x_model = generator(batch)
+					d_model = discriminator(x_model)
+					gen_loss = generator.loss_function(x_model, x_model, d_model)
+					# generator_loss = generator.loss_function(state, y_model, d_model)
+				generator_gradients = gen_tape.gradient(gen_loss, generator.trainable_variables)
+				generator.optimizer.apply_gradients(zip(generator_gradients, generator.trainable_variables))
+
+			for i in range(hp.disc_update_freq):
+				with tf.GradientTape() as disc_tape:
+					x_model, x_expert = batch[:, 0], batch[:, 1]
+					x_model = generator(batch)
+					d_expert = discriminator(x_expert)
+					d_model = discriminator(x_model)
+					disc_loss = discriminator.loss_function(x_model, x_expert, d_model, d_expert)
+				discriminator_gradients = disc_tape.gradient(disc_loss, discriminator.trainable_variables)
+				discriminator.optimizer.apply_gradients(zip(discriminator_gradients, discriminator.trainable_variables))
+
+			if batch_num % ARGS.print_every_x_batches == 0:
+				print("Epoch: {} Batch: {} Generator Loss: {} Discriminator Loss: {}".format(e, batch_num))
+
+			if batch_num % ARGS.save_every_x_batches == 0:
+				manager.save()
+
+			batch_num += 1
 
 
-def test():
+def test(dataset):
 	pass
 
 
