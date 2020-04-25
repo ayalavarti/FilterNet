@@ -31,8 +31,11 @@ def test_lightroom():
     for b in td.data:
         raw_photos = b.numpy()[:,1,:,:,:]
         editor = PhotoEditor()
-        photos = editor(raw_photos, hp.parameters)
-        assert (np.array_equal(raw_photos, photos) == False)
+        editted_photos = editor(raw_photos, hp.parameters)
+        assert (np.array_equal(raw_photos, editted_photos) == False)
+        for i in range(0, 4):
+            assert(raw_photos.shape[i] == editted_photos.shape[i])
+
 
 def test_train_dataset():
     td = Datasets(UNTOUCHED_TRAIN, EDITED_TRAIN, 'train')

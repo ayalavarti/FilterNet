@@ -12,7 +12,8 @@ from skimage.color import rgb2hsv, hsv2rgb
 
 
 def relu(vector):
-    return np.where(vector > 0, vector, 0)
+    vector[vector < 0] = 0
+    return vector
 
 
 def sigmoid(vector):
@@ -21,7 +22,12 @@ def sigmoid(vector):
 
 def sigmoid_inversed(vector):  # basically the logit function
     # paper implements this differently than I do someone check to see if i need to check for overflow
-    return np.log(vector / (1 - vector))
+    denom = 1-vector
+    denom[denom < .001] = .001
+    divided = vector / (denom)
+    divided[divided<=0]=0
+    divided[divided!=0] = np.log(divided[divided!=0])
+    return divided
 
 
 def clarity(photo, parameter):
@@ -34,9 +40,9 @@ def clarity(photo, parameter):
                                 50,
                                 10 * scale,
                                 multichannel=True)
-    new_pic /= 255.0
 
     editted = photo + (photo - new_pic) * parameter
+    editted = np.clip(editted, 0, 1)
     return editted
 
 
@@ -150,39 +156,15 @@ class PhotoEditor():
         for index, photo in enumerate(photos):
             for param in parameters:
                 if (param == exposure) or (param == temp) or (param == tint):  # for exposure, temperature, and tint
-                    editted[index,:,:,:] = photo
-
-                    #     param(sigmoid_inversed(photo),
-                    #                             parameters[param])
-                    # photo = sigmoid(editted)
+                    photoI = param(sigmoid_inversed(photo), parameters[param])
+                    photo = sigmoid(photoI)
                 elif (param == clarity) or (param == contrast):  # for clarity and contrast
                     photo = param(photo, parameters[param])
                 else:  # hsv conversions
                     hsv_edit = param(rgb2hsv(photo), parameters[param])
                     # note: assumes that our pictures have had values from [0, 1]
                     photo = hsv2rgb(hsv_edit)
+            # photo = exposure(sigmoid_inversed(photo), parameters[exposure])
+            # photo = sigmoid(photo)
             editted[index,:,:,:] = photo
         return editted
-
-
-# if __name__ == "__main__":
-#     editor = PhotoEditor()
-#     UNTOUCHED_TRAIN = './sample_data/train/untouched'
-#     EDITED_TRAIN = './sample_data/train/edited'
-#
-#     td = Datasets(UNTOUCHED_TRAIN, EDITED_TRAIN, 'train')
-#     for b in td.data:
-#         npImage = b[0,0,:,:,:].numpy()
-#         hsv = rgb2hsv(npImage)
-#
-#         #test_image = img_as_float32(io.imread(npImage))
-#         # print(test_image[0, 0, 0])
-#         # hsv_edit = vibrance(rgb2hsv(test_image[:, :, :3]), 0.1)
-#         # print(rgb2hsv(test_image[:, :, :3]).shape)
-#         # note: assumes that our pictures have had values from [0, 1]
-#         photo = whites(hsv, 0.5)
-#         photo = hsv2rgb(photo)
-#
-#         io.imsave("./output.png", photo.copy())
-#         print("here")
-#         break

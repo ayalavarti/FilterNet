@@ -13,16 +13,16 @@ momentum = 0.01
 
 #should we select 10 of the filters because there are more than 10
 parameters = {
-            E.clarity: .2,
-            E.contrast: .3,
-            E.exposure: .2,
-            E.temp: .2,
-            E.tint: .2,
-            E.whites: .2,
-            E.blacks: .2,
-            E.highlights: .2,
-            E.shadows: .2,
-            E.vibrance: .2,
-            E.saturation: .2
+            E.clarity: .125,
+            E.contrast: .375,
+            E.exposure: .123,
+            E.temp: .125,
+            E.tint: .125,
+            E.whites: .125,
+            E.blacks: .125,
+            E.highlights: .125,
+            E.shadows: .125,
+            E.vibrance: .125,
+            E.saturation: .125
         }
 
