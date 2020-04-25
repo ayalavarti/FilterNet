@@ -3,6 +3,7 @@ import numpy as np
 from skimage import io, img_as_ubyte, img_as_float32
 import math
 import sys
+from skimage.restoration import denoise_bilateral
 from skimage.color import rgb2hsv, hsv2rgb
 
 # from matplotlib.colors import hsv_to_rgb  # skimage didn't have one for some reason
@@ -25,12 +26,13 @@ def sigmoid_inversed(vector):  # basically the logit function
 def clarity(photo, parameter):
     # scaling the dimensions -- ask if this size is okay
     scale = max(photo.shape[:2]) / 512.0
-    print(scale)
     # getting our parameter
     # parameters have to do with pixel diameter for filter, aand color space smoothing
-    new_pic = np.array(photo.shape)
-    cv2.bilateralFilter((photo * 255).astype(np.uint8), new_pic,
-                        int(32 * scale), 50, 10 * scale)
+    new_pic = denoise_bilateral(photo,
+                                int(32 * scale),
+                                50,
+                                10 * scale,
+                                multichannel=True)
     new_pic /= 255.0
 
     editted = photo + (photo - new_pic) * parameter
@@ -45,14 +47,14 @@ def contrast(photo, parameter):
     return editted
 
 
-def exposure(photo, parameter):
+def exposure(sig_inv_photo, parameter):
     ''' requires sigmoid_inversed '''
-    return sigmoid_inversed(photo) + parameter * 5
+    return sig_inv_photo + parameter * 5
 
 
-def temp(photo, parameter):
+def temp(sig_inv_photo, parameter):
     ''' requires sigmoid_inversed '''
-    to_edit = photo
+    to_edit = sig_inv_photo
     if parameter > 0:
         to_edit[:, :, 1] += parameter * 1.6
         to_edit[:, :, 0] += parameter * 2
@@ -62,9 +64,9 @@ def temp(photo, parameter):
     return to_edit
 
 
-def tint(photo, parameter):
+def tint(sig_inv_photo, parameter):
     ''' requires sigmoid_inversed '''
-    to_edit = sigmoid_inversed(photo)
+    to_edit = sig_inv_photo
     to_edit[:, :, 1] -= parameter * 1
     if parameter > 0:
         to_edit[:, :, 0] += parameter * 1
@@ -114,9 +116,7 @@ def vibrance(hsv_photo, parameter):
     ''' requires hsv '''
     vibrance = parameter + 1
     sat = hsv_photo[1]
-    print(sat.shape)
     vibrance_flag = -sigmoid((sat - 0.5) * 10) + 1
-    print(vibrance_flag.shape)
 
     return np.array([
         hsv_photo[0],
@@ -151,7 +151,7 @@ class PhotoEditor():
             if (i > 1) and (i < 5):  # for exposure, temperature, and tint
                 editted = self.edit_funcs[i](sigmoid_inversed(photo),
                                              parameters[i])
-                photo = sigmoid_inversed(editted)
+                photo = sigmoid(editted)
             elif (i == 0) or (i == 1):  # for clarity and contrast
                 self.edit_funcs[i](photo, parameters[i])
             else:  # hsv conversions
@@ -169,6 +169,6 @@ if __name__ == "__main__":
     # hsv_edit = vibrance(rgb2hsv(test_image[:, :, :3]), 0.1)
     # print(rgb2hsv(test_image[:, :, :3]).shape)
     # note: assumes that our pictures have had values from [0, 1]
-    photo = clarity(test_image, 0.5)
-
+    photo = exposure(test_image, 0.1)
+    photo = sigmoid(photo)
     io.imsave("./output.png", img_as_ubyte(photo.copy()))
