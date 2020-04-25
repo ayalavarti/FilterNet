@@ -34,7 +34,7 @@ def clarity(photo, parameter):
     # scaling the dimensions -- ask if this size is okay
     scale = max(photo.shape[:2]) / 512.0
     # getting our parameter
-    # parameters have to do with pixel diameter for filter, aand color space smoothing
+    # parameters have to do with pixel diameter for filter, and color space smoothing
     new_pic = denoise_bilateral(photo,
                                 int(32 * scale),
                                 50,
