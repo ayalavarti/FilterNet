@@ -60,3 +60,4 @@ def test_generator_model():
 
 if __name__ == '__main__':
 	test_generator_loss()
+	test_discriminator_loss()
