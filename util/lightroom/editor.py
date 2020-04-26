@@ -1,3 +1,4 @@
+import matplotlib
 import numpy as np
 from skimage.color import rgb2hsv, hsv2rgb
 from skimage.restoration import denoise_bilateral
@@ -28,8 +29,12 @@ def sigmoid_inverse(vector):
 	divided[divided != 0] = np.log(divided[divided != 0])
 	return divided
 
-def visualize_batch(batch, model_edits):
-	num_images = min(batch.shape[0], hp.test_images)
+
+# Method to be used for visualizing output images
+def visualize_batch(batch, model_edits, display, num_display):
+	if not display:
+		matplotlib.use('Agg')
+	num_images = min(batch.shape[0], num_display)
 	fig, axs = plt.subplots(nrows=3, ncols=num_images)
 	fig.suptitle("Images\n ")
 	for ind, ax in enumerate(axs):
@@ -47,7 +52,10 @@ def visualize_batch(batch, model_edits):
 			plt.setp(a.get_xticklabels(), visible=False)
 			plt.setp(a.get_yticklabels(), visible=False)
 			a.tick_params(axis='both', which='both', length=0)
-	plt.show()
+	if display:
+		plt.show()
+	else:
+		plt.savefig('output.jpg', bbox_inches='tight')
 
 
 # ======== Custom Lightroom Filters ========

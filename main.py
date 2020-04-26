@@ -109,6 +109,18 @@ def parse_args():
 		default='C',
 		help="Which editor images to use for testing")
 
+	ts.add_argument(
+		"--display",
+		type=bool,
+		default=False,
+		help="True if you want to display the test output, false to save to file.")
+
+	ts.add_argument(
+		"--num-display",
+		type=int,
+		default=hp.test_images,
+		help="Number of test images to display, must be <= batch size")
+
 	# Subparser for evaluate command
 	ev = subparsers.add_parser(
 		"evaluate", description="Evaluate / run the model on the given data")
@@ -137,6 +149,8 @@ def train(dataset, manager, generator, discriminator):
 	for e in ARGS.epochs:
 		batch_num = 0
 		for batch in dataset.data:
+
+			#Update Generator
 			for i in range(hp.gen_update_freq):
 				with tf.GradientTape() as gen_tape:
 					x_model = batch[:, 0]
@@ -148,6 +162,7 @@ def train(dataset, manager, generator, discriminator):
 				generator_gradients = gen_tape.gradient(gen_loss, generator.trainable_variables)
 				generator.optimizer.apply_gradients(zip(generator_gradients, generator.trainable_variables))
 
+			# Update Discriminator
 			for i in range(hp.disc_update_freq):
 				with tf.GradientTape() as disc_tape:
 					x_model, y_expert = batch[:, 0], batch[:, 1]
@@ -169,9 +184,14 @@ def train(dataset, manager, generator, discriminator):
 			batch_num += 1
 
 
-def test(dataset):
+def test(dataset, generator):
 	for batch in dataset.data:
-		editor.visualize_batch(batch, batch[:, 1])
+		x_model = batch[:, 0]
+		policy, value = generator(batch)
+		prob, act = policy
+		y_model = editor.PhotoEditor(x_model, act)
+		# Call visualizer to visualize images
+		editor.visualize_batch(batch, y_model, ARGS.display, ARGS.num_display)
 		break
 
 
@@ -199,16 +219,13 @@ def main():
 				dataset = Datasets(
 					ARGS.untouched_dir, ARGS.edited_dir, "train", ARGS.editor)
 
-				for a in dataset.data:
-					generator(a[0, 0])
-
-				pass
+				train(dataset, manager, generator, discriminator)
 
 			if ARGS.command == 'test':
 				# test here!
 				dataset = Datasets(
 					ARGS.untouched_dir, ARGS.edited_dir, "test", ARGS.editor)
-				test(dataset)
+				test(dataset, generator)
 
 			if ARGS.command == 'evaluate':
 				# Ensure the output directory exists
