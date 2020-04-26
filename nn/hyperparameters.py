@@ -12,6 +12,7 @@ print_every_x_batches = 10
 save_every_x_batches = 10
 
 lr_alpha = 0.2
+test_images = 5
 
 # Model hyper-parameters
 L = 33
