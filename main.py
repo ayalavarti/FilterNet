@@ -9,6 +9,8 @@ from nn.models import Generator, Discriminator
 from util.datasets import Datasets
 
 # Killing optional CPU driver warnings
+import util.lightroom.editor as editor
+
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 
 gpu_available = tf.config.list_physical_devices("GPU")
@@ -140,7 +142,7 @@ def train(dataset, manager, generator, discriminator):
 					x_model = batch[:, 0]
 					policy, value = generator(batch)
 					prob, act = policy
-					y_model = PhotoEditor(x_model, act)
+					y_model = editor.PhotoEditor(x_model, act)
 					d_model = discriminator(x_model)
 					gen_loss = generator.loss_function(x_model, y_model, d_model)
 				generator_gradients = gen_tape.gradient(gen_loss, generator.trainable_variables)
@@ -151,7 +153,7 @@ def train(dataset, manager, generator, discriminator):
 					x_model, y_expert = batch[:, 0], batch[:, 1]
 					policy, value = generator(batch)
 					prob, act = policy
-					y_model = PhotoEditor(x_model, act)
+					y_model = editor.PhotoEditor(x_model, act)
 					d_expert = discriminator(y_expert)
 					d_model = discriminator(y_model)
 					disc_loss = discriminator.loss_function(y_model, y_expert, d_model, d_expert)
@@ -168,7 +170,9 @@ def train(dataset, manager, generator, discriminator):
 
 
 def test(dataset):
-	pass
+	for batch in dataset.data:
+		editor.visualize_batch(batch, batch[:, 1])
+		break
 
 
 def main():
@@ -204,7 +208,7 @@ def main():
 				# test here!
 				dataset = Datasets(
 					ARGS.untouched_dir, ARGS.edited_dir, "test", ARGS.editor)
-				pass
+				test(dataset)
 
 			if ARGS.command == 'evaluate':
 				# Ensure the output directory exists
