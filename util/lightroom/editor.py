@@ -1,8 +1,7 @@
-import matplotlib
 import numpy as np
+from scipy import special
 from skimage.color import rgb2hsv, hsv2rgb
 from skimage.restoration import denoise_bilateral
-from matplotlib import pyplot as plt
 
 import nn.hyperparameters as hp
 
@@ -18,7 +17,7 @@ def relu(vector):
 
 
 def sigmoid(vector):
-	return 1 / (1 + np.exp(-vector))
+	return special.expit(vector)
 
 
 def sigmoid_inverse(vector):
@@ -28,34 +27,6 @@ def sigmoid_inverse(vector):
 	divided[divided <= 0] = 0
 	divided[divided != 0] = np.log(divided[divided != 0])
 	return divided
-
-
-# Method to be used for visualizing output images
-def visualize_batch(batch, model_edits, display, num_display):
-	if not display:
-		matplotlib.use('Agg')
-	num_images = min(batch.shape[0], num_display)
-	fig, axs = plt.subplots(nrows=3, ncols=num_images)
-	fig.suptitle("Images\n ")
-	for ind, ax in enumerate(axs):
-		for i in range(len(ax)):
-			a = ax[i]
-			if ind == 0:
-				a.imshow(batch[i, 0], cmap="Greys")
-				a.set(title="Unedited")
-			elif ind == 1:
-				a.imshow(model_edits[i], cmap="Greys")
-				a.set(title="Model")
-			else:
-				a.imshow(batch[i, 1], cmap="Greys")
-				a.set(title="Expert")
-			plt.setp(a.get_xticklabels(), visible=False)
-			plt.setp(a.get_yticklabels(), visible=False)
-			a.tick_params(axis='both', which='both', length=0)
-	if display:
-		plt.show()
-	else:
-		plt.savefig('output.jpg', bbox_inches='tight')
 
 
 # ======== Custom Lightroom Filters ========
@@ -169,6 +140,7 @@ class Whites(Filter):
 	@staticmethod
 	def _filter(hsv_photo, parameter):
 		white = parameter + 1
+		white = 0 if white < 0 else white
 		new_values = hsv_photo[:, :, 2] + (
 				hsv_photo[:, :, 2] * (np.sqrt(white) - 1) * 0.2)
 		toReturn = np.dstack(
@@ -187,6 +159,7 @@ class Blacks(Filter):
 	@staticmethod
 	def _filter(hsv_photo, parameter):
 		black = parameter + 1
+		black = 0 if black < 0 else black
 		new_values = hsv_photo[:, :, 2] + ((1 - hsv_photo[:, :, 2]) *
 										   (np.sqrt(black) - 1) * 0.2)
 		return np.dstack([hsv_photo[:, :, 0], hsv_photo[:, :, 1], new_values])
@@ -317,7 +290,8 @@ class PhotoEditor:
 			photo, params = photos[i], parameters[i]
 			new_photo = np.copy(photo)
 			if ind:
-				app_f, app_params = np.take(cls.filters, ind), np.take(params, ind)
+				app_f, app_params = np.take(cls.filters, ind), np.take(params,
+																	   ind)
 			else:
 				app_f, app_params = cls.filters, params
 

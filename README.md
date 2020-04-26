@@ -17,3 +17,10 @@ To run the neural net model, use
 python main.py [-h] [--checkpoint-dir] [--device] {train, test} ...
 ```
 Use the `-h` or `--help` flags to specify optional arguments. For example `python main.py train -h`.
+
+## Training and TensorBoard
+To train, run
+```
+python main.py train
+```
+To view TensorBoard logs, run `tensorboard --logdir logs/scalars`.

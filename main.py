@@ -1,17 +1,19 @@
 import os
+import datetime
 from argparse import ArgumentParser, ArgumentTypeError
 
 import tensorflow as tf
 
 import nn.hyperparameters as hp
 import util.sys as sys
+import util.visualize as viz
 from nn.models import Generator, Discriminator
 from util.datasets import Datasets
+from util.lightroom.editor import PhotoEditor
 
 # Killing optional CPU driver warnings
-import util.lightroom.editor as editor
-
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
+tf.keras.backend.set_floatx('float32')
 
 gpu_available = tf.config.list_physical_devices("GPU")
 
@@ -146,42 +148,59 @@ ARGS = parse_args()
 
 
 def train(dataset, manager, generator, discriminator):
-	for e in ARGS.epochs:
-		batch_num = 0
-		for batch in dataset.data:
+	log_dir = os.path.join("logs/scalars/", datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))
+	summary_writer = tf.summary.create_file_writer(logdir=log_dir)
 
-			#Update Generator
-			for i in range(hp.gen_update_freq):
+	for e in range(ARGS.epochs):
+		print(f"========== Epoch {e} ==========")
+		for b, batch in enumerate(dataset.data):
+			# Update Generator
+			for _ in range(hp.gen_update_freq):
 				with tf.GradientTape() as gen_tape:
 					x_model = batch[:, 0]
-					policy, value = generator(batch)
-					prob, act = policy
-					y_model = editor.PhotoEditor(x_model, act)
+					(prob, act), value = generator(x_model)
+					act = generator.scale_action_space(act)
+
+					y_model = PhotoEditor.edit(x_model.numpy(), act.numpy())
+					y_model = tf.convert_to_tensor(y_model, dtype=tf.float32)
 					d_model = discriminator(x_model)
+
 					gen_loss = generator.loss_function(x_model, y_model, d_model)
-				generator_gradients = gen_tape.gradient(gen_loss, generator.trainable_variables)
-				generator.optimizer.apply_gradients(zip(generator_gradients, generator.trainable_variables))
+
+				gen_grad = gen_tape.gradient(gen_loss, generator.trainable_variables)
+				generator.optimizer.apply_gradients(
+					zip(gen_grad, generator.trainable_variables))
 
 			# Update Discriminator
-			for i in range(hp.disc_update_freq):
+			for _ in range(hp.disc_update_freq):
 				with tf.GradientTape() as disc_tape:
 					x_model, y_expert = batch[:, 0], batch[:, 1]
-					policy, value = generator(batch)
-					prob, act = policy
-					y_model = editor.PhotoEditor(x_model, act)
+					(prob, act), value = generator(x_model)
+					act = generator.scale_action_space(act)
+
+					y_model = PhotoEditor.edit(x_model.numpy(), act.numpy())
+					y_model = tf.convert_to_tensor(y_model, dtype=tf.float32)
 					d_expert = discriminator(y_expert)
 					d_model = discriminator(y_model)
-					disc_loss = discriminator.loss_function(y_model, y_expert, d_model, d_expert)
-				discriminator_gradients = disc_tape.gradient(disc_loss, discriminator.trainable_variables)
-				discriminator.optimizer.apply_gradients(zip(discriminator_gradients, discriminator.trainable_variables))
 
-			if batch_num % ARGS.print_every_x_batches == 0:
-				print("Epoch: {} Batch: {} Generator Loss: {} Discriminator Loss: {}".format(e, batch_num))
+					disc_loss = discriminator.loss_function(
+						y_model, y_expert, d_model, d_expert)
 
-			if batch_num % ARGS.save_every_x_batches == 0:
+				disc_grad = disc_tape.gradient(disc_loss, discriminator.trainable_variables)
+				discriminator.optimizer.apply_gradients(
+					zip(disc_grad, discriminator.trainable_variables))
+
+			if b % ARGS.print_every_x_batches == 0:
+				print(f"Batch: {b} Generator Loss: {gen_loss} Discriminator Loss: {disc_loss}")
+				with summary_writer.as_default():
+					tf.summary.scalar('disc_loss', disc_loss,
+									  step=discriminator.optimizer.iterations)
+					tf.summary.scalar('gen_loss', gen_loss,
+									  step=generator.optimizer.iterations)
+
+			if b % ARGS.save_every_x_batches == 0:
 				manager.save()
 
-			batch_num += 1
 
 
 def test(dataset, generator):
@@ -189,9 +208,9 @@ def test(dataset, generator):
 		x_model = batch[:, 0]
 		policy, value = generator(batch)
 		prob, act = policy
-		y_model = editor.PhotoEditor(x_model, act)
+		y_model = PhotoEditor.edit(x_model, act)
 		# Call visualizer to visualize images
-		editor.visualize_batch(batch, y_model, ARGS.display, ARGS.num_display)
+		viz.visualize_batch(batch, y_model, ARGS.display, ARGS.num_display)
 		break
 
 
@@ -211,6 +230,10 @@ def main():
 	manager = tf.train.CheckpointManager(
 		checkpoint, ARGS.checkpoint_dir,
 		max_to_keep=3)
+
+	if ARGS.command != 'train' or ARGS.restore_checkpoint:
+		# Restores the latest checkpoint using from the manager
+		checkpoint.restore(manager.latest_checkpoint)
 
 	try:
 		with tf.device("/device:" + ARGS.device):
