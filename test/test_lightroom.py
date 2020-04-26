@@ -18,7 +18,10 @@ os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 
 """given a filter applies the filter, and displays the edited and unedited versions of
  first image of the first batch"""
-def plot_lightroom_one_filter(filter):
+
+
+def test_lightroom_one_filter():
+    filter = E.saturation
     td = Datasets(UNTOUCHED_TRAIN, EDITED_TRAIN, 'train')
     for b in td.data:
         raw_photos = b.numpy()[:, 0, :, :, :]
@@ -30,7 +33,20 @@ def plot_lightroom_one_filter(filter):
         io.show()
         plt.show()
         break;
-    assert(1==1)
+
+def test_lightroom_all_filters():
+    td = Datasets(UNTOUCHED_TRAIN, EDITED_TRAIN, 'train')
+    for b in td.data:
+        raw_photos = b.numpy()[:, 0, :, :, :]
+        editor = PhotoEditor()
+        editted_photos = editor(raw_photos, hp.parameters)
+        io.imshow(editted_photos[0, :, :, :])
+        io.show()
+        io.imshow(raw_photos[0, :, :, :])
+        io.show()
+        plt.show()
+        break;
+
 
 """applies all filters outlined in photoeditor to training set"""
 def test_lightroom():
@@ -45,5 +61,5 @@ def test_lightroom():
 
 
 if __name__ == '__main__':
-    plot_lightroom_one_filter(E.saturation)
+    test_lightroom_all_filters()
     #test_lightroom()
