@@ -137,21 +137,24 @@ def train(dataset, manager, generator, discriminator):
 		for batch in dataset.data:
 			for i in range(hp.gen_update_freq):
 				with tf.GradientTape() as gen_tape:
-					x_model, x_expert = batch[:, 0], batch[:, 1]
-					x_model = generator(batch)
+					x_model = batch[:, 0]
+					policy, value = generator(batch)
+					prob, act = policy
+					y_model = PhotoEditor(x_model, act)
 					d_model = discriminator(x_model)
-					gen_loss = generator.loss_function(x_model, x_model, d_model)
-					# generator_loss = generator.loss_function(state, y_model, d_model)
+					gen_loss = generator.loss_function(x_model, y_model, d_model)
 				generator_gradients = gen_tape.gradient(gen_loss, generator.trainable_variables)
 				generator.optimizer.apply_gradients(zip(generator_gradients, generator.trainable_variables))
 
 			for i in range(hp.disc_update_freq):
 				with tf.GradientTape() as disc_tape:
-					x_model, x_expert = batch[:, 0], batch[:, 1]
-					x_model = generator(batch)
-					d_expert = discriminator(x_expert)
-					d_model = discriminator(x_model)
-					disc_loss = discriminator.loss_function(x_model, x_expert, d_model, d_expert)
+					x_model, y_expert = batch[:, 0], batch[:, 1]
+					policy, value = generator(batch)
+					prob, act = policy
+					y_model = PhotoEditor(x_model, act)
+					d_expert = discriminator(y_expert)
+					d_model = discriminator(y_model)
+					disc_loss = discriminator.loss_function(y_model, y_expert, d_model, d_expert)
 				discriminator_gradients = disc_tape.gradient(disc_loss, discriminator.trainable_variables)
 				discriminator.optimizer.apply_gradients(zip(discriminator_gradients, discriminator.trainable_variables))
 

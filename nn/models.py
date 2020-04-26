@@ -2,8 +2,8 @@ import tensorflow as tf
 from tensorflow.python.keras.layers import LeakyReLU
 
 import nn.hyperparameters as hp
-from tensorflow.keras.layers import Conv2D, Conv1D, MaxPool2D, Dropout, \
-    Flatten, Dense, BatchNormalization, AveragePooling2D
+from tensorflow.keras.layers import Conv2D, Conv1D, Dense, BatchNormalization,\
+     Flatten, AveragePooling2D
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.losses import categorical_crossentropy
 
@@ -189,9 +189,9 @@ class Discriminator(tf.keras.Model):
         return gp
 
     @tf.function
-    def loss_function(self, x_model, x_expert, d_model, d_expert):
+    def loss_function(self, y_model, y_expert, d_model, d_expert):
         # WGAN discriminator loss
         wgan_disc_loss = tf.reduce_sum(d_model) - tf.reduce_sum(d_expert)
         # Gradient penalty
-        gp = self._gradient_penalty(x_expert, x_model)
+        gp = self._gradient_penalty(y_expert, y_model)
         return wgan_disc_loss + self.lda * gp
