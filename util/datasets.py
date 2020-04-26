@@ -106,7 +106,8 @@ class Datasets:
 		self.u_imgs = tf.constant(list(u_imgs))
 
 		if self.e_dir:
-			np.random.shuffle(self.file_list)
+			if self.task == "train":
+				np.random.shuffle(self.file_list)
 			e_imgs = map(lambda x: join(self.e_dir, f"{h}-{x}"), self.file_list)
 			self.e_imgs = tf.constant(list(e_imgs))
 
