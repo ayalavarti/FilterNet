@@ -19,6 +19,9 @@ class Generator(tf.keras.Model):
         self.alpha = hp.alpha
         self.beta = hp.beta
 
+        self.a_min = hp.ak_min
+        self.a_max = hp.ak_max
+
         # Adam optimizer with 1e-4 lr
         self.optimizer = Adam(learning_rate=hp.learning_rate)
         # LeakyReLU activation with alpha=0.2
@@ -107,14 +110,16 @@ class Generator(tf.keras.Model):
     def get_value(self, image):
         return self.dense_1(self.flatten(image))
 
+    def scale_action_space(self, act):
+        return self.a_min + (self.a_max-self.a_min) * ((act - 1) / (self.L - 1))
+
     @tf.function
     def loss_function(self, state, y_model, d_model):
         # Reward
         R = d_model - self.alpha * tf.reduce_mean(tf.square(state - y_model))
 
         # ========= A2C RL training =========
-        policy, value = self.call(state)
-        prob, act = policy
+        (prob, act), value = self.call(state)
 
         # ======= Value Loss =======
         advantage = R - value

@@ -17,6 +17,10 @@ test_images = 5
 # Model hyper-parameters
 L = 33
 K = 11
-alpha = 1e2
+alpha = 10
 beta = 1e-3
 lda = 10
+
+# Scale hyper-parameters
+ak_min = -1
+ak_max = 1
