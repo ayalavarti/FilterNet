@@ -11,7 +11,7 @@ lr_alpha = 0.2
 
 # Model hyper-parameters
 L = 33
-K = 12
+K = 11
 alpha = 1e2
 beta = 1e-3
 lda = 10
