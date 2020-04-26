@@ -25,18 +25,6 @@ def show_sample():
         io.show()
 
 
-def test_lightroom():
-    td = Datasets(UNTOUCHED_TRAIN, EDITED_TRAIN, 'train')
-
-    for b in td.data:
-        raw_photos = b.numpy()[:,1,:,:,:]
-        editor = PhotoEditor()
-        editted_photos = editor(raw_photos, hp.parameters)
-        assert (np.array_equal(raw_photos, editted_photos) == False)
-        for i in range(0, 4):
-            assert(raw_photos.shape[i] == editted_photos.shape[i])
-
-
 def test_train_dataset():
     td = Datasets(UNTOUCHED_TRAIN, EDITED_TRAIN, 'train')
 
@@ -88,5 +76,5 @@ def test_evaluate_dataset():
 
 
 if __name__ == '__main__':
+    test_train_dataset()
     # show_sample()
-    test_lightroom()
