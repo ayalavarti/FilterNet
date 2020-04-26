@@ -1,9 +1,8 @@
-import cv2
 import numpy as np
-from skimage import io, img_as_ubyte, img_as_float32
-import nn.hyperparameters as hp
-from skimage.restoration import denoise_bilateral
 from skimage.color import rgb2hsv, hsv2rgb
+from skimage.restoration import denoise_bilateral
+
+import nn.hyperparameters as hp
 
 
 # ======== Pre-, post- processing functions ========
@@ -261,8 +260,28 @@ class PhotoEditor:
 
 	@classmethod
 	def edit(cls, photos, parameters, ind=None):
-		# if parameters.shape[1] != hp.K:
-		# 	raise ValueError("Incorrect number of filter parameters found")
+		"""
+		Static class method that will edit a batch of images given a batch of
+		:parameters. Applies each of the K filters for the ith image using the
+		ith set of K parameters. Each parameter should be between [-1, 1].
+
+		Can optionally include a list of indices indicate specific filters to
+		apply. However, parameters adn photos should still be of the required
+		shape (detailed below).
+
+		Order of filters reflects order of parameters:
+		[clarity, contrast, exposure, temp, tint, whites, blacks, highlights,
+		shadows, vibrance, saturation]
+
+		:param photos: numpy array of shape
+					[hp.batch_size, hp.img_size, hp.img_size, 3]
+		:param parameters: numpy array of shape
+					[hp.batch_size, hp.K]
+		:param ind: list of indices to apply filters of
+		:return:
+		"""
+		if parameters.shape[1] != hp.K:
+			raise ValueError("Incorrect number of filter parameters found")
 		edited = np.zeros(np.shape(photos))
 		for i in range(len(photos)):
 			photo, params = photos[i], parameters[i]

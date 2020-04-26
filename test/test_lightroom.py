@@ -15,6 +15,7 @@ os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 
 td = Datasets(UNTOUCHED_TRAIN, EDITED_TRAIN, 'train')
 
+# Should actually be of shape [hp.batch_size, hp.K]
 parameters = np.array(
 	[[.125, .375, -.223, .125, .125, .125, .125, .125, .125, .125, .125],
 	 [.125, .375, .123, .125, .125, .125, .125, .125, .125, .125, .125]])
@@ -62,4 +63,4 @@ def test_lightroom():
 
 if __name__ == '__main__':
 	lightroom_one_filter()
-	# test_lightroom()
+	test_lightroom()
