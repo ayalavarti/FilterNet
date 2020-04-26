@@ -23,7 +23,7 @@ def parse_args():
 		if os.path.isdir(directory):
 			return os.path.normpath(directory)
 		else:
-			raise ArgumentTypeError(f"Invalid directory: {directory}")
+			raise ArgumentTypeError("Invalid directory: {}".format(directory))
 
 	parser = ArgumentParser(
 		prog="FilterNet",
@@ -152,7 +152,7 @@ def train(dataset, manager, generator, discriminator):
 	summary_writer = tf.summary.create_file_writer(logdir=log_dir)
 
 	for e in range(ARGS.epochs):
-		print(f"========== Epoch {e} ==========")
+		print("========== Epoch {} ==========".format(e))
 		for b, batch in enumerate(dataset.data):
 			# Update Generator
 			for _ in range(hp.gen_update_freq):
@@ -191,7 +191,7 @@ def train(dataset, manager, generator, discriminator):
 					zip(disc_grad, discriminator.trainable_variables))
 
 			if b % ARGS.print_every_x_batches == 0:
-				print(f"Batch: {b} Generator Loss: {gen_loss} Discriminator Loss: {disc_loss}")
+				print("Batch: {} Generator Loss: {} Discriminator Loss: {}".format(b, gen_loss, disc_loss))
 				with summary_writer.as_default():
 					tf.summary.scalar('disc_loss', disc_loss,
 									  step=discriminator.optimizer.iterations)
