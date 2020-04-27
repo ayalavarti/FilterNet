@@ -24,7 +24,8 @@ class Generator(tf.keras.Model):
 		self.a_max = hp.ak_max
 
 		# Adam optimizer with 1e-4 lr
-		self.optimizer = Adam(learning_rate=hp.learning_rate, beta_1=hp.beta_1)
+		self.optimizer = Adam(learning_rate=hp.learning_rate, beta_1=hp.beta_1,
+							  clipnorm=40)
 		# LeakyReLU activation with alpha=0.2
 		self.leaky_relu = LeakyReLU(hp.lr_alpha)
 
@@ -133,10 +134,10 @@ class Generator(tf.keras.Model):
 		entropy = tf.reshape(entropy, (-1, 1))
 
 		# Cross-entropy for multi-class exclusive problem sum down all filters
-		policy_loss = -1 * tf.reduce_sum(tf.math.log(prob), axis=[1, 2])
-		policy_loss = tf.reshape(policy_loss, (-1, 1))
-		# policy_loss = tf.reduce_sum(categorical_crossentropy(
-		# 	action_one_hot, prob), axis=1, keepdims=True)
+		#policy_loss = -1 * tf.reduce_sum(tf.math.log(prob), axis=[1, 2])
+		#policy_loss = tf.reshape(policy_loss, (-1, 1))
+		policy_loss = tf.reduce_sum(categorical_crossentropy(
+			action_one_hot, prob), axis=1, keepdims=True)
 
 		# Stop gradient flow from value network with advantage calculation
 		policy_loss *= tf.stop_gradient(advantage)
@@ -153,7 +154,8 @@ class Discriminator(tf.keras.Model):
 		self.lda = hp.lda
 
 		# Adam optimizer with 1e-4 lr
-		self.optimizer = Adam(learning_rate=hp.learning_rate, beta_1=hp.beta_1)
+		self.optimizer = Adam(learning_rate=hp.learning_rate, beta_1=hp.beta_1,
+							  clipnorm=40)
 
 		# LeakyReLU activation with alpha=0.2
 		self.leaky_relu = LeakyReLU(hp.lr_alpha)

@@ -6,7 +6,7 @@ num_epochs = 20
 batch_size = 100
 learning_rate = 1e-4
 beta_1 = 0.5
-gen_update_freq = 2
+gen_update_freq = 1
 disc_update_freq = 1
 print_every_x_batches = 1
 save_every_x_batches = 5
@@ -17,7 +17,7 @@ test_images = 5
 # Model hyper-parameters
 L = 33
 K = 11
-alpha = 100
+alpha = 10
 beta = 1e-3
 lda = 10.0
 
