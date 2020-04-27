@@ -50,7 +50,7 @@ class Clarity(Filter):
     @staticmethod
     def _filter(photo, parameter):
         # scale is 1/8 of the maximum image size
-        scale = max(photo.shape[:2]) / (8 * 128.0)
+        scale = max(photo.shape[:2]) / (8 * max(photo.shape[:2]))
         # parameters have to do with pixel diameter for filter,
         # and color space smoothing
         new_pic = denoise_bilateral(photo,
