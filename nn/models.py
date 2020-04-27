@@ -10,20 +10,6 @@ from tensorflow.keras import backend
 from tensorflow.keras.constraints import Constraint
 
 
-class ClipConstraint(Constraint):
-	# set clip value when initialized
-	def __init__(self, clip_value):
-		self.clip_value = clip_value
-
-	# clip model weights to hypercube
-	def __call__(self, weights):
-		return backend.clip(weights, -self.clip_value, self.clip_value)
-
-	# get the config
-	def get_config(self):
-		return {'clip_value': self.clip_value}
-
-
 class Generator(tf.keras.Model):
 	def __init__(self):
 		super(Generator, self).__init__()
@@ -44,6 +30,7 @@ class Generator(tf.keras.Model):
 		self.leaky_relu = LeakyReLU(hp.lr_alpha)
 
 		# ====== Shared convolution layers ======
+		#self.conv0 = Conv2D(16, (3, 3), strides=(2, 2), padding='same')
 		self.conv1 = Conv2D(16, (3, 3), strides=(1, 1), padding='same')
 		self.conv2 = Conv2D(32, (3, 3), strides=(2, 2), padding='same')
 		self.conv3 = Conv2D(48, (2, 2), strides=(2, 2), padding='same')
@@ -80,6 +67,7 @@ class Generator(tf.keras.Model):
 
 	@tf.function
 	def call(self, state, testing=False):
+		#h = self.leaky_relu(self.conv0(state))
 		h = self.leaky_relu(self.conv1(state))
 		h = self.leaky_relu(self.batch_norm_2(self.conv2(h)))
 		h = self.leaky_relu(self.batch_norm_3(self.conv3(h)))
@@ -140,14 +128,16 @@ class Generator(tf.keras.Model):
 
 		# ======= Policy Loss =======
 		# One hot encode actions for all L steps
-		action_one_hot = tf.one_hot(act, self.L, dtype=tf.float32)
+		#action_one_hot = tf.one_hot(act, self.L, dtype=tf.float32)
 		# Entropy of filter's prob dist for each img, sum over filters and steps
 		entropy = tf.reduce_sum(prob * tf.math.log(prob + 1e-20), axis=[1, 2])
 		entropy = tf.reshape(entropy, (-1, 1))
 
 		# Cross-entropy for multi-class exclusive problem sum down all filters
-		policy_loss = tf.reduce_sum(categorical_crossentropy(
-			action_one_hot, prob), axis=1, keepdims=True)
+		policy_loss = -1 * tf.reduce_sum(tf.math.log(prob), axis=[1, 2])
+		policy_loss = tf.reshape(policy_loss, (-1, 1))
+		#policy_loss = tf.reduce_sum(categorical_crossentropy(
+		#	action_one_hot, prob), axis=1, keepdims=True)
 
 		# Stop gradient flow from value network with advantage calculation
 		policy_loss *= tf.stop_gradient(advantage)
