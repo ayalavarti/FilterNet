@@ -1,13 +1,13 @@
 # Image size
-img_size = 128
+img_size = 64
 
 # Training parameters
 num_epochs = 50
 batch_size = 100
 learning_rate = 1e-4
 beta_1 = 0.5
-gen_update_freq = 1
-disc_update_freq = 2
+gen_update_freq = 2
+disc_update_freq = 1
 print_every_x_batches = 1
 save_every_x_batches = 1
 
@@ -22,5 +22,5 @@ beta = 1e-3
 lda = 10
 
 # Scale hyper-parameters
-ak_min = -1
-ak_max = 1
+ak_min = -0.5
+ak_max = 0.5

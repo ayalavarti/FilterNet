@@ -44,8 +44,6 @@ class Generator(tf.keras.Model):
 		self.leaky_relu = LeakyReLU(hp.lr_alpha)
 
 		# ====== Shared convolution layers ======
-		self.conv0 = Conv2D(16, (3, 3), strides=(2, 2), padding='same',
-							input_shape=(hp.img_size, hp.img_size, 3))
 		self.conv1 = Conv2D(16, (3, 3), strides=(1, 1), padding='same')
 		self.conv2 = Conv2D(32, (3, 3), strides=(2, 2), padding='same')
 		self.conv3 = Conv2D(48, (2, 2), strides=(2, 2), padding='same')
@@ -82,8 +80,7 @@ class Generator(tf.keras.Model):
 
 	@tf.function
 	def call(self, state, testing=False):
-		h = self.leaky_relu(self.conv0(state))
-		h = self.leaky_relu(self.conv1(h))
+		h = self.leaky_relu(self.conv1(state))
 		h = self.leaky_relu(self.batch_norm_2(self.conv2(h)))
 		h = self.leaky_relu(self.batch_norm_3(self.conv3(h)))
 		h = self.leaky_relu(self.batch_norm_4(self.conv4(h)))
@@ -166,7 +163,7 @@ class Discriminator(tf.keras.Model):
 		# Loss hyperparameters
 		self.lda = hp.lda
 
-		const = ClipConstraint(0.01)
+		const = ClipConstraint(0.05)
 
 		# Adam optimizer with 1e-4 lr
 		# consider switching to RMSprop with no momentum and lr of 0.00005
@@ -177,12 +174,12 @@ class Discriminator(tf.keras.Model):
 		self.batch_size = hp.batch_size
 
 		# ====== Discriminator layers ======
-		self.conv1 = Conv2D(16, (3, 3), strides=(1, 1), padding='same', kernel_constraint=const)
-		self.conv2 = Conv2D(32, (3, 3), strides=(1, 1), padding='same', kernel_constraint=const)
-		self.conv3 = Conv2D(48, (2, 2), strides=(2, 2), padding='same', kernel_constraint=const)
-		self.conv4 = Conv2D(48, (2, 2), strides=(2, 2), padding='same', kernel_constraint=const)
-		self.conv5 = Conv2D(64, (2, 2), strides=(2, 2), padding='same', kernel_constraint=const)
-		self.conv6 = Conv2D(48, (2, 2), strides=(2, 2), padding='same', kernel_constraint=const)
+		self.conv1 = Conv2D(16, (3, 3), strides=(1, 1), padding='same')
+		self.conv2 = Conv2D(32, (3, 3), strides=(1, 1), padding='same')
+		self.conv3 = Conv2D(48, (2, 2), strides=(2, 2), padding='same')
+		self.conv4 = Conv2D(48, (2, 2), strides=(2, 2), padding='same')
+		self.conv5 = Conv2D(64, (2, 2), strides=(2, 2), padding='same')
+		self.conv6 = Conv2D(48, (2, 2), strides=(2, 2), padding='same')
 		self.flatten = Flatten()
 		self.dense_1 = Dense(1)
 
@@ -214,7 +211,7 @@ class Discriminator(tf.keras.Model):
 	@tf.function
 	def loss_function(self, y_model, y_expert, d_model, d_expert):
 		# WGAN discriminator loss
-		wgan_disc_loss = tf.reduce_sum(d_model) - tf.reduce_sum(d_expert)
+		wgan_disc_loss = tf.reduce_mean(d_model) - tf.reduce_mean(d_expert)
 		# Gradient penalty
 		gp = self._gradient_penalty(y_expert, y_model)
 		return wgan_disc_loss + self.lda * gp

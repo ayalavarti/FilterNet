@@ -108,7 +108,7 @@ class Datasets:
 		if self.e_dir:
 			if self.task == "train":
 				np.random.shuffle(self.file_list)
-			e_imgs = map(lambda x: join(self.e_dir, "{}-{}".format(h, x)), self.file_list)
+			e_imgs = map(lambda x: join(self.e_dir, "{}-{}".format(h.lower(), x)), self.file_list)
 			self.e_imgs = tf.constant(list(e_imgs))
 
 	def _get_dual_data(self):

@@ -207,9 +207,10 @@ def train(dataset, manager, generator, discriminator):
 def test(dataset, generator):
 	for batch in dataset.data:
 		x_model = batch[:, 0]
-		policy, value = generator(batch)
-		prob, act = policy
-		y_model = PhotoEditor.edit(x_model, act)
+		(prob, act), value = generator(x_model)
+		act = generator.scale_action_space(act)
+
+		y_model = PhotoEditor.edit(x_model.numpy(), act.numpy())
 		# Call visualizer to visualize images
 		viz.visualize_batch(batch, y_model, ARGS.display, ARGS.num_display)
 		break
