@@ -3,6 +3,7 @@ import datetime
 from argparse import ArgumentParser, ArgumentTypeError
 
 import tensorflow as tf
+import numpy as np
 
 import nn.hyperparameters as hp
 import util.sys as sys
@@ -159,12 +160,15 @@ def train(dataset, manager, generator, discriminator):
 			for _ in range(hp.gen_update_freq):
 				with tf.GradientTape() as gen_tape:
 					x_model = batch[:, 0]
-					(prob, act), value = generator(x_model)
-					act_scaled = generator.scale_action_space(act)
+					prob, value = generator(x_model)
+					prob_dist = prob.numpy()
+					act = [[np.random.choice(hp.L, p=prob_dist[i][k]) for k in range(hp.K)] for i in range(hp.batch_size)]
+					act_scaled = generator.scale_action_space(np.array(act))
 
-					y_model = PhotoEditor.edit(x_model.numpy(), act_scaled.numpy())
+					y_model = PhotoEditor.edit(x_model.numpy(), act_scaled)
 					y_model = tf.convert_to_tensor(y_model, dtype=tf.float32)
 					d_model = discriminator(x_model)
+					act = tf.convert_to_tensor(act)
 
 					gen_loss = generator.loss_function(x_model, y_model, d_model, prob, act, value)
 
@@ -176,10 +180,12 @@ def train(dataset, manager, generator, discriminator):
 			for i in range(hp.disc_update_freq):
 				with tf.GradientTape() as disc_tape:
 					x_model, y_expert = batch[:, 0], batch[:, 1]
-					(prob, act), value = generator(x_model)
-					act = generator.scale_action_space(act)
+					prob, value = generator(x_model)
+					prob_dist = prob.numpy()
+					act = [[np.random.choice(hp.L, p=prob_dist[i][k]) for k in range(hp.K)] for i in range(hp.batch_size)]
+					act_scaled = generator.scale_action_space(np.array(act))
 
-					y_model = PhotoEditor.edit(x_model.numpy(), act.numpy())
+					y_model = PhotoEditor.edit(x_model.numpy(), act_scaled)
 					y_model = tf.convert_to_tensor(y_model, dtype=tf.float32)
 					d_expert = discriminator(y_expert)
 					d_model = discriminator(y_model)

@@ -92,20 +92,20 @@ class Generator(tf.keras.Model):
 		# Get softmax distribution for each a_k (column of p) corresponding to
 		# all L steps
 		soft_dist = tf.nn.softmax(p, axis=1)
-
-		if det:
-			# Return for each image in batch the K parameters by argmax over
-			# dimension 1 or the distribution of L steps for the kth filter
-			act = tf.argmax(soft_dist, axis=1)
-		else:
-			# For all K filters, sample from all batches of all L timesteps to
-			# determine parameter choice for the kth filter
-			act = [tf.random.categorical(soft_dist[:, :, i], 1) for i in range(self.K)]
-			act = tf.convert_to_tensor(act)
-			act = tf.transpose(tf.squeeze(act))
-
+		#
+		# if det:
+		# 	# Return for each image in batch the K parameters by argmax over
+		# 	# dimension 1 or the distribution of L steps for the kth filter
+		# 	act = tf.argmax(soft_dist, axis=1)
+		# else:
+		# 	# For all K filters, sample from all batches of all L timesteps to
+		# 	# determine parameter choice for the kth filter
+		# 	act = [tf.random.categorical(soft_dist[:, :, i], 1) for i in range(self.K)]
+		# 	act = tf.convert_to_tensor(act)
+		# 	act = tf.transpose(tf.squeeze(act))
+		#
 		soft_dist = tf.transpose(soft_dist, (0, 2, 1))
-		return soft_dist, act
+		return soft_dist
 
 	@tf.function
 	def get_value(self, image):
