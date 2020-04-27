@@ -203,7 +203,6 @@ def train(dataset, manager, generator, discriminator):
 				manager.save()
 
 
-
 def test(dataset, generator):
 	for batch in dataset.data:
 		x_model = batch[:, 0]
