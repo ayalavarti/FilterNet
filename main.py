@@ -16,6 +16,7 @@ os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 tf.keras.backend.set_floatx('float32')
 
 gpu_available = tf.config.list_physical_devices("GPU")
+print(gpu_available)
 
 
 def parse_args():
@@ -233,6 +234,7 @@ def main():
 
 	if ARGS.command != 'train' or ARGS.restore_checkpoint:
 		# Restores the latest checkpoint using from the manager
+		print("Loading checkpoint")
 		checkpoint.restore(manager.latest_checkpoint)
 
 	try:

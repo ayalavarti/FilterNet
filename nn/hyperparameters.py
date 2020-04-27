@@ -3,13 +3,13 @@ img_size = 128
 
 # Training parameters
 num_epochs = 50
-batch_size = 10
+batch_size = 100
 learning_rate = 1e-4
-momentum = 0.01
+beta_1 = 0.5
 gen_update_freq = 1
-disc_update_freq = 1
-print_every_x_batches = 10
-save_every_x_batches = 10
+disc_update_freq = 2
+print_every_x_batches = 1
+save_every_x_batches = 1
 
 lr_alpha = 0.2
 test_images = 5
