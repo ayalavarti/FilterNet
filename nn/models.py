@@ -2,12 +2,11 @@ import tensorflow as tf
 from tensorflow.python.keras.layers import LeakyReLU
 
 import nn.hyperparameters as hp
+import numpy as np
 from tensorflow.keras.layers import Conv2D, Conv1D, Dense, BatchNormalization, \
 	Flatten, AveragePooling2D
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.losses import categorical_crossentropy
-from tensorflow.keras import backend
-from tensorflow.keras.constraints import Constraint
 
 
 class Generator(tf.keras.Model):
@@ -65,7 +64,7 @@ class Generator(tf.keras.Model):
 		self.batch_norm_10 = BatchNormalization()
 		self.batch_norm_11 = BatchNormalization()
 
-	@tf.function
+	# @tf.function
 	def call(self, state, testing=False):
 		#h = self.leaky_relu(self.conv0(state))
 		h = self.leaky_relu(self.conv1(state))
@@ -77,11 +76,11 @@ class Generator(tf.keras.Model):
 		# Return policy (probabilities, actions), value
 		return self.get_policy(h, det=testing), self.get_value(h)
 
-	@tf.function
+	# @tf.function
 	def get_policy(self, h, det=False):
 		# Global average poling and transpose
 		p = self.avg_pool(h)
-		p = tf.reshape(p, (self.batch_size, -1, 1))
+		p = tf.reshape(p, (len(h), -1, 1))
 		p = self.leaky_relu(self.batch_norm_7(self.conv7(p)))
 		p = self.leaky_relu(self.batch_norm_8(self.conv8(p)))
 		p = self.leaky_relu(self.batch_norm_9(self.conv9(p)))
@@ -112,7 +111,9 @@ class Generator(tf.keras.Model):
 		return self.dense_1(self.flatten(image))
 
 	def scale_action_space(self, act):
-		return self.a_min + (self.a_max - self.a_min) * ((act - 1) / (self.L - 1))
+		actions = (tf.cast(act, tf.float32) - (self.L - 1) / 2) / ((self.L - 1) / 2)
+		return np.clip(actions / 1.0, self.a_min, self.a_max)
+		# return self.a_min + (self.a_max - self.a_min) * ((act - 1) / (self.L - 1))
 
 	# @tf.function
 	def loss_function(self, state, y_model, d_model):
@@ -128,16 +129,17 @@ class Generator(tf.keras.Model):
 
 		# ======= Policy Loss =======
 		# One hot encode actions for all L steps
-		#action_one_hot = tf.one_hot(act, self.L, dtype=tf.float32)
+		action_one_hot = tf.one_hot(act, self.L, dtype=tf.float32)
 		# Entropy of filter's prob dist for each img, sum over filters and steps
 		entropy = tf.reduce_sum(prob * tf.math.log(prob + 1e-20), axis=[1, 2])
 		entropy = tf.reshape(entropy, (-1, 1))
 
 		# Cross-entropy for multi-class exclusive problem sum down all filters
-		policy_loss = -1 * tf.reduce_sum(tf.math.log(prob), axis=[1, 2])
-		policy_loss = tf.reshape(policy_loss, (-1, 1))
-		#policy_loss = tf.reduce_sum(categorical_crossentropy(
-		#	action_one_hot, prob), axis=1, keepdims=True)
+		# policy_loss = [sum([tf.math.log(p[a]) for p, a in zip(prob[i], act[i])]) for i in range(self.batch_size)]
+		# policy_loss = -1 * tf.reduce_sum(tf.math.log(prob), axis=[1, 2])
+		# policy_loss = tf.reshape(policy_loss, (-1, 1))
+		policy_loss = tf.reduce_sum(categorical_crossentropy(
+			action_one_hot, prob), axis=1, keepdims=True)
 
 		# Stop gradient flow from value network with advantage calculation
 		policy_loss *= tf.stop_gradient(advantage)
@@ -153,10 +155,7 @@ class Discriminator(tf.keras.Model):
 		# Loss hyperparameters
 		self.lda = hp.lda
 
-		const = ClipConstraint(0.05)
-
 		# Adam optimizer with 1e-4 lr
-		# consider switching to RMSprop with no momentum and lr of 0.00005
 		self.optimizer = Adam(learning_rate=hp.learning_rate, beta_1=hp.beta_1)
 
 		# LeakyReLU activation with alpha=0.2
@@ -198,10 +197,12 @@ class Discriminator(tf.keras.Model):
 		gp = tf.reduce_mean((grad_norm - 1.) ** 2)
 		return gp
 
-	@tf.function
+	# @tf.function
 	def loss_function(self, y_model, y_expert, d_model, d_expert):
 		# WGAN discriminator loss
 		wgan_disc_loss = tf.reduce_mean(d_model) - tf.reduce_mean(d_expert)
 		# Gradient penalty
 		gp = self._gradient_penalty(y_expert, y_model)
 		return wgan_disc_loss + self.lda * gp
+		# dcgan_disc_loss = tf.reduce_sum(tf.math.softplus(-d_expert)) + tf.reduce_sum(tf.math.softplus(d_model))
+		# return dcgan_disc_loss / len(d_model)
