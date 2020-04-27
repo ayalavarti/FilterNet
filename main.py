@@ -162,7 +162,7 @@ def train(dataset, manager, generator, discriminator):
 					(prob, act), value = generator(x_model)
 					act = generator.scale_action_space(act)
 
-					y_model = PhotoEditor.edit(x_model.numpy(), act)
+					y_model = PhotoEditor.edit(x_model.numpy(), act.numpy())
 					y_model = tf.convert_to_tensor(y_model, dtype=tf.float32)
 					d_model = discriminator(x_model)
 
@@ -175,12 +175,11 @@ def train(dataset, manager, generator, discriminator):
 			# Update Discriminator
 			for i in range(hp.disc_update_freq):
 				with tf.GradientTape() as disc_tape:
-					x_model, y_expert = batch[i, 0], batch[i, 1]
-					x_model, y_expert = tf.expand_dims(x_model, 0), tf.expand_dims(y_expert, 0)
+					x_model, y_expert = batch[:, 0], batch[:, 1]
 					(prob, act), value = generator(x_model)
-					act = generator.scale_action_space(act)[None]
+					act = generator.scale_action_space(act)
 
-					y_model = PhotoEditor.edit(x_model.numpy(), act)
+					y_model = PhotoEditor.edit(x_model.numpy(), act.numpy())
 					y_model = tf.convert_to_tensor(y_model, dtype=tf.float32)
 					d_expert = discriminator(y_expert)
 					d_model = discriminator(y_model)

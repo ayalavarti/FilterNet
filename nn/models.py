@@ -111,9 +111,9 @@ class Generator(tf.keras.Model):
 		return self.dense_1(self.flatten(image))
 
 	def scale_action_space(self, act):
-		actions = (tf.cast(act, tf.float32) - (self.L - 1) / 2) / ((self.L - 1) / 2)
-		return np.clip(actions / 1.0, self.a_min, self.a_max)
-		# return self.a_min + (self.a_max - self.a_min) * ((act - 1) / (self.L - 1))
+		# actions = (tf.cast(act, tf.float32) - (self.L - 1) / 2) / ((self.L - 1) / 2)
+		# return np.clip(actions / 1.0, self.a_min, self.a_max)
+		return self.a_min + (self.a_max - self.a_min) * ((act - 1) / (self.L - 1))
 
 	# @tf.function
 	def loss_function(self, state, y_model, d_model):
@@ -200,9 +200,9 @@ class Discriminator(tf.keras.Model):
 	# @tf.function
 	def loss_function(self, y_model, y_expert, d_model, d_expert):
 		# WGAN discriminator loss
-		wgan_disc_loss = tf.reduce_mean(d_model) - tf.reduce_mean(d_expert)
+		# wgan_disc_loss = tf.reduce_mean(d_model) - tf.reduce_mean(d_expert)
 		# Gradient penalty
-		gp = self._gradient_penalty(y_expert, y_model)
-		return wgan_disc_loss + self.lda * gp
-		# dcgan_disc_loss = tf.reduce_sum(tf.math.softplus(-d_expert)) + tf.reduce_sum(tf.math.softplus(d_model))
-		# return dcgan_disc_loss / len(d_model)
+		# gp = self._gradient_penalty(y_expert, y_model)
+		# return wgan_disc_loss + self.lda * gp
+		dcgan_disc_loss = tf.reduce_sum(tf.math.softplus(-d_expert)) + tf.reduce_sum(tf.math.softplus(d_model))
+		return dcgan_disc_loss / len(d_model)
