@@ -160,13 +160,13 @@ def train(dataset, manager, generator, discriminator):
 				with tf.GradientTape() as gen_tape:
 					x_model = batch[:, 0]
 					(prob, act), value = generator(x_model)
-					act = generator.scale_action_space(act)
+					act_scaled = generator.scale_action_space(act)
 
-					y_model = PhotoEditor.edit(x_model.numpy(), act.numpy())
+					y_model = PhotoEditor.edit(x_model.numpy(), act_scaled.numpy())
 					y_model = tf.convert_to_tensor(y_model, dtype=tf.float32)
 					d_model = discriminator(x_model)
 
-					gen_loss = generator.loss_function(x_model, y_model, d_model)
+					gen_loss = generator.loss_function(x_model, y_model, d_model, prob, act, value)
 
 				gen_grad = gen_tape.gradient(gen_loss, generator.trainable_variables)
 				generator.optimizer.apply_gradients(

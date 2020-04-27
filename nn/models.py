@@ -115,12 +115,12 @@ class Generator(tf.keras.Model):
 		return self.a_min + (self.a_max - self.a_min) * ((act - 1) / (self.L - 1))
 
 	@tf.function
-	def loss_function(self, state, y_model, d_model):
+	def loss_function(self, state, y_model, d_model, prob, act, value):
 		# Reward
 		R = d_model - self.alpha * tf.reduce_mean(tf.square(state - y_model))
 
 		# ========= A2C RL training =========
-		(prob, act), value = self.call(state)
+		# (prob, act), value = self.call(state)
 
 		# ======= Value Loss =======
 		advantage = R - value
