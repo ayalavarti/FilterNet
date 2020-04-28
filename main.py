@@ -212,17 +212,23 @@ def train(dataset, manager, generator, discriminator):
 def test(dataset, generator):
 	for batch in dataset.data:
 		x_model = batch[:, 0]
-		(prob, act), value = generator(x_model, testing=False)
-		act = generator.scale_action_space(act)
+		prob, value = generator(x_model)
+		prob_dist = prob.numpy()
+		act = [[np.random.choice(hp.L, p=prob_dist[i][k]) for k in range(hp.K)]
+			   for i in range(hp.batch_size)]
+		act_scaled = generator.scale_action_space(np.array(act))
 
-		y_model = PhotoEditor.edit(x_model.numpy(), act.numpy())
+		y_model = PhotoEditor.edit(x_model.numpy(), act_scaled)
 		# Call visualizer to visualize images
 		viz.visualize_batch(batch, y_model, ARGS.display, ARGS.num_display)
 
-		(prob, act), value = generator(x_model, testing=True)
-		act = generator.scale_action_space(act)
+		prob, value = generator(x_model)
+		prob_dist = prob.numpy()
+		act = [[np.random.choice(hp.L, p=prob_dist[i][k]) for k in range(hp.K)]
+			   for i in range(hp.batch_size)]
+		act_scaled = generator.scale_action_space(np.array(act))
 
-		y_model = PhotoEditor.edit(x_model.numpy(), act.numpy())
+		y_model = PhotoEditor.edit(x_model.numpy(), act_scaled)
 		# Call visualizer to visualize images
 		viz.visualize_batch(batch, y_model, ARGS.display, ARGS.num_display)
 		break

@@ -30,7 +30,7 @@ class Generator(tf.keras.Model):
 		self.leaky_relu = LeakyReLU(hp.lr_alpha)
 
 		# ====== Shared convolution layers ======
-		#self.conv0 = Conv2D(16, (3, 3), strides=(2, 2), padding='same')
+		self.conv0 = Conv2D(16, (3, 3), strides=(2, 2), padding='same')
 		self.conv1 = Conv2D(16, (3, 3), strides=(1, 1), padding='same')
 		self.conv2 = Conv2D(32, (3, 3), strides=(2, 2), padding='same')
 		self.conv3 = Conv2D(48, (2, 2), strides=(2, 2), padding='same')
@@ -67,8 +67,8 @@ class Generator(tf.keras.Model):
 
 	@tf.function
 	def call(self, state, testing=False):
-		#h = self.leaky_relu(self.conv0(state))
-		h = self.leaky_relu(self.conv1(state))
+		h = self.leaky_relu(self.conv0(state))
+		h = self.leaky_relu(self.conv1(h))
 		h = self.leaky_relu(self.batch_norm_2(self.conv2(h)))
 		h = self.leaky_relu(self.batch_norm_3(self.conv3(h)))
 		h = self.leaky_relu(self.batch_norm_4(self.conv4(h)))
