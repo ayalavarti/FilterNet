@@ -2,8 +2,9 @@ import tensorflow as tf
 from tensorflow.python.keras.layers import LeakyReLU
 
 import nn.hyperparameters as hp
-from tensorflow.keras.layers import Conv2D, Conv1D, Dense, BatchNormalization,\
-     Flatten, AveragePooling2D
+import numpy as np
+from tensorflow.keras.layers import Conv2D, Conv1D, Dense, BatchNormalization, \
+    Flatten, AveragePooling2D
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.losses import categorical_crossentropy
 
@@ -23,21 +24,22 @@ class Generator(tf.keras.Model):
         self.a_max = hp.ak_max
 
         # Adam optimizer with 1e-4 lr
-        self.optimizer = Adam(learning_rate=hp.learning_rate)
+        self.optimizer = Adam(learning_rate=hp.learning_rate, beta_1=hp.beta_1,
+                              clipvalue=0.01)
         # LeakyReLU activation with alpha=0.2
         self.leaky_relu = LeakyReLU(hp.lr_alpha)
 
         # ====== Shared convolution layers ======
-        self.conv0 = Conv2D(16, (3, 3), strides=(2, 2), padding='same',
-                            input_shape=(hp.img_size, hp.img_size, 3))
+        self.conv0 = Conv2D(16, (3, 3), strides=(2, 2), padding='same')
         self.conv1 = Conv2D(16, (3, 3), strides=(1, 1), padding='same')
         self.conv2 = Conv2D(32, (3, 3), strides=(2, 2), padding='same')
         self.conv3 = Conv2D(48, (2, 2), strides=(2, 2), padding='same')
         self.conv4 = Conv2D(48, (2, 2), strides=(2, 2), padding='same')
         self.conv5 = Conv2D(64, (2, 2), strides=(2, 2), padding='same')
-        self.conv6 = Conv2D(self.L+12, (2, 2), strides=(2, 2), padding='same')
+        self.conv6 = Conv2D(self.L + 12, (2, 2), strides=(2, 2), padding='same')
 
         # ====== BatchNormalization layers ======
+        self.batch_norm_0 = BatchNormalization()
         self.batch_norm_2 = BatchNormalization()
         self.batch_norm_3 = BatchNormalization()
         self.batch_norm_4 = BatchNormalization()
@@ -65,8 +67,8 @@ class Generator(tf.keras.Model):
         self.batch_norm_11 = BatchNormalization()
 
     @tf.function
-    def call(self, state, testing=False):
-        h = self.leaky_relu(self.conv0(state))
+    def call(self, state):
+        h = self.leaky_relu(self.batch_norm_0(self.conv0(state)))
         h = self.leaky_relu(self.conv1(h))
         h = self.leaky_relu(self.batch_norm_2(self.conv2(h)))
         h = self.leaky_relu(self.batch_norm_3(self.conv3(h)))
@@ -74,13 +76,13 @@ class Generator(tf.keras.Model):
         h = self.leaky_relu(self.batch_norm_5(self.conv5(h)))
         h = self.leaky_relu(self.batch_norm_6(self.conv6(h)))
         # Return policy (probabilities, actions), value
-        return self.get_policy(h, det=testing), self.get_value(h)
+        return self.get_policy(h), self.get_value(h)
 
     @tf.function
-    def get_policy(self, h, det=False):
+    def get_policy(self, h):
         # Global average poling and transpose
         p = self.avg_pool(h)
-        p = tf.reshape(p, (self.batch_size, -1, 1))
+        p = tf.reshape(p, (len(h), -1, 1))
         p = self.leaky_relu(self.batch_norm_7(self.conv7(p)))
         p = self.leaky_relu(self.batch_norm_8(self.conv8(p)))
         p = self.leaky_relu(self.batch_norm_9(self.conv9(p)))
@@ -91,36 +93,35 @@ class Generator(tf.keras.Model):
         # Get softmax distribution for each a_k (column of p) corresponding to
         # all L steps
         soft_dist = tf.nn.softmax(p, axis=1)
-
-        if det:
-            # Return for each image in batch the K parameters by argmax over
-            # dimension 1 or the distribution of L steps for the kth filter
-            act = tf.argmax(soft_dist, axis=1)
-        else:
-            # For all K filters, sample from all batches of all L timesteps to
-            # determine parameter choice for the kth filter
-            act = [tf.random.categorical(soft_dist[:, :, i], 1) for i in range(self.K)]
-            act = tf.convert_to_tensor(act)
-            act = tf.transpose(tf.squeeze(act))
-
         soft_dist = tf.transpose(soft_dist, (0, 2, 1))
-        return soft_dist, act
+        return soft_dist
 
     @tf.function
     def get_value(self, image):
         return self.dense_1(self.flatten(image))
 
-    def scale_action_space(self, act):
-        return self.a_min + (self.a_max-self.a_min) * ((act - 1) / (self.L - 1))
+    def convert_prob_act(self, prob, det=False):
+        if det:
+            act = np.argsort(-prob)[:, :, :hp.det_avg]
+            comb_act = np.array([self._scale_action_space(act[:, :, i]) for i in range(hp.det_avg)])
+            act_scaled = np.mean(comb_act, axis=0)
+        else:
+            act = [[np.random.choice(hp.L, p=prob[i][k]) for k in range(hp.K)] for i in range(hp.batch_size)]
+            act = np.array(act)
+            act_scaled = self._scale_action_space(act)
+
+        return act_scaled, act
+
+    def _scale_action_space(self, act):
+        return self.a_min + (self.a_max - self.a_min) * (
+                    (act - 1) / (self.L - 1))
 
     @tf.function
-    def loss_function(self, state, y_model, d_model):
+    def loss_function(self, state, y_model, d_model, prob, act, value):
         # Reward
         R = d_model - self.alpha * tf.reduce_mean(tf.square(state - y_model))
 
         # ========= A2C RL training =========
-        (prob, act), value = self.call(state)
-
         # ======= Value Loss =======
         advantage = R - value
         value_loss = advantage ** 2
@@ -151,8 +152,8 @@ class Discriminator(tf.keras.Model):
         self.lda = hp.lda
 
         # Adam optimizer with 1e-4 lr
-        # consider switching to RMSprop with no momentum and lr of 0.00005
-        self.optimizer = Adam(learning_rate=hp.learning_rate)
+        self.optimizer = Adam(learning_rate=hp.learning_rate, beta_1=hp.beta_1,
+                              clipvalue=0.01)
 
         # LeakyReLU activation with alpha=0.2
         self.leaky_relu = LeakyReLU(hp.lr_alpha)
@@ -196,7 +197,7 @@ class Discriminator(tf.keras.Model):
     @tf.function
     def loss_function(self, y_model, y_expert, d_model, d_expert):
         # WGAN discriminator loss
-        wgan_disc_loss = tf.reduce_sum(d_model) - tf.reduce_sum(d_expert)
+        wgan_disc_loss = tf.reduce_mean(d_model) - tf.reduce_mean(d_expert)
         # Gradient penalty
         gp = self._gradient_penalty(y_expert, y_model)
         return wgan_disc_loss + self.lda * gp

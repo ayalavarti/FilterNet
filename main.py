@@ -3,6 +3,7 @@ import datetime
 from argparse import ArgumentParser, ArgumentTypeError
 
 import tensorflow as tf
+import numpy as np
 
 import nn.hyperparameters as hp
 import util.sys as sys
@@ -16,6 +17,7 @@ os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 tf.keras.backend.set_floatx('float32')
 
 gpu_available = tf.config.list_physical_devices("GPU")
+print(gpu_available)
 
 
 def parse_args():
@@ -114,7 +116,7 @@ def parse_args():
 	ts.add_argument(
 		"--display",
 		type=bool,
-		default=False,
+		default=True,
 		help="True if you want to display the test output, false to save to file.")
 
 	ts.add_argument(
@@ -148,9 +150,6 @@ ARGS = parse_args()
 
 
 def train(dataset, manager, generator, discriminator):
-	log_dir = os.path.join("logs/scalars/", datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))
-	summary_writer = tf.summary.create_file_writer(logdir=log_dir)
-
 	for e in range(ARGS.epochs):
 		print("========== Epoch {} ==========".format(e))
 		for b, batch in enumerate(dataset.data):
@@ -158,57 +157,57 @@ def train(dataset, manager, generator, discriminator):
 			for _ in range(hp.gen_update_freq):
 				with tf.GradientTape() as gen_tape:
 					x_model = batch[:, 0]
-					(prob, act), value = generator(x_model)
-					act = generator.scale_action_space(act)
+					prob, value = generator(x_model)
+					act_scaled, act = generator.convert_prob_act(prob.numpy())
+					act = tf.convert_to_tensor(act)
 
-					y_model = PhotoEditor.edit(x_model.numpy(), act.numpy())
+					y_model = PhotoEditor.edit(x_model.numpy(), act_scaled)
 					y_model = tf.convert_to_tensor(y_model, dtype=tf.float32)
 					d_model = discriminator(x_model)
 
-					gen_loss = generator.loss_function(x_model, y_model, d_model)
+					gen_loss = generator.loss_function(x_model, y_model, d_model, prob, act, value)
 
 				gen_grad = gen_tape.gradient(gen_loss, generator.trainable_variables)
-				generator.optimizer.apply_gradients(
-					zip(gen_grad, generator.trainable_variables))
+				generator.optimizer.apply_gradients(zip(gen_grad, generator.trainable_variables))
 
 			# Update Discriminator
-			for _ in range(hp.disc_update_freq):
+			for i in range(hp.disc_update_freq):
 				with tf.GradientTape() as disc_tape:
 					x_model, y_expert = batch[:, 0], batch[:, 1]
-					(prob, act), value = generator(x_model)
-					act = generator.scale_action_space(act)
+					prob, value = generator(x_model)
+					act_scaled, _ = generator.convert_prob_act(prob.numpy())
 
-					y_model = PhotoEditor.edit(x_model.numpy(), act.numpy())
+					y_model = PhotoEditor.edit(x_model.numpy(), act_scaled)
 					y_model = tf.convert_to_tensor(y_model, dtype=tf.float32)
 					d_expert = discriminator(y_expert)
 					d_model = discriminator(y_model)
 
-					disc_loss = discriminator.loss_function(
-						y_model, y_expert, d_model, d_expert)
+					disc_loss = discriminator.loss_function(y_model, y_expert, d_model, d_expert)
 
 				disc_grad = disc_tape.gradient(disc_loss, discriminator.trainable_variables)
-				discriminator.optimizer.apply_gradients(
-					zip(disc_grad, discriminator.trainable_variables))
+				discriminator.optimizer.apply_gradients(zip(disc_grad, discriminator.trainable_variables))
 
 			if b % ARGS.print_every_x_batches == 0:
-				print("Batch: {} Generator Loss: {} Discriminator Loss: {}".format(b, gen_loss, disc_loss))
-				with summary_writer.as_default():
-					tf.summary.scalar('disc_loss', disc_loss,
-									  step=discriminator.optimizer.iterations)
-					tf.summary.scalar('gen_loss', gen_loss,
-									  step=generator.optimizer.iterations)
+				print("Epoch: {} Batch: {} Generator Loss: {} Discriminator Loss: {}".format(e, b, gen_loss, disc_loss))
 
 			if b % ARGS.save_every_x_batches == 0:
 				manager.save()
 
 
-
 def test(dataset, generator):
 	for batch in dataset.data:
 		x_model = batch[:, 0]
-		policy, value = generator(batch)
-		prob, act = policy
-		y_model = PhotoEditor.edit(x_model, act)
+		prob, value = generator(x_model)
+		act_scaled, _ = generator.convert_prob_act(prob.numpy())
+
+		y_model = PhotoEditor.edit(x_model.numpy(), act_scaled)
+		# Call visualizer to visualize images
+		viz.visualize_batch(batch, y_model, ARGS.display, ARGS.num_display)
+
+		prob, value = generator(x_model)
+		act_scaled, _ = generator.convert_prob_act(prob.numpy(), det=True)
+
+		y_model = PhotoEditor.edit(x_model.numpy(), act_scaled)
 		# Call visualizer to visualize images
 		viz.visualize_batch(batch, y_model, ARGS.display, ARGS.num_display)
 		break
@@ -233,6 +232,7 @@ def main():
 
 	if ARGS.command != 'train' or ARGS.restore_checkpoint:
 		# Restores the latest checkpoint using from the manager
+		print("Loading checkpoint")
 		checkpoint.restore(manager.latest_checkpoint)
 
 	try:
