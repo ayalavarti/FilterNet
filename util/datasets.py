@@ -102,12 +102,13 @@ class Datasets:
 		Creates lists of untouched and (optionally) edited image file paths
 		:param h: header for when processing edited image directory
 		"""
-		u_imgs = map(lambda x: join(self.u_dir, f"u-{x}"), self.file_list)
+		u_imgs = map(lambda x: join(self.u_dir, "u-{}".format(x)), self.file_list)
 		self.u_imgs = tf.constant(list(u_imgs))
 
 		if self.e_dir:
-			np.random.shuffle(self.file_list)
-			e_imgs = map(lambda x: join(self.e_dir, f"{h}-{x}"), self.file_list)
+			if self.task == "train":
+				np.random.shuffle(self.file_list)
+			e_imgs = map(lambda x: join(self.e_dir, "{}-{}".format(h, x)), self.file_list)
 			self.e_imgs = tf.constant(list(e_imgs))
 
 	def _get_dual_data(self):
@@ -126,7 +127,7 @@ class Datasets:
 	def _get_data(self):
 		"""
 		Returns a tf.data.Dataset containing 5D tf.Tensors of shape
-			[hp.batch_size, 1, hp.img_size, hp.img_size, 3]
+			[hp.batch_size, 1f, hp.img_size, hp.img_size, 3]
 		"""
 		# Set up tf.data.Dataset with image filepaths of untouched images
 		# then map with self._input_parser to convert filepath to tf.Tensor

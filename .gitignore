@@ -17,3 +17,5 @@ __pycache__
 data/
 data_old/
 saved_models/
+logs/
+model_weights/

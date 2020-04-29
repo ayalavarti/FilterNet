@@ -2,8 +2,8 @@ import tensorflow as tf
 from tensorflow.python.keras.layers import LeakyReLU
 
 import nn.hyperparameters as hp
-from tensorflow.keras.layers import Conv2D, Conv1D, MaxPool2D, Dropout, \
-    Flatten, Dense, BatchNormalization, AveragePooling2D
+from tensorflow.keras.layers import Conv2D, Conv1D, Dense, BatchNormalization,\
+     Flatten, AveragePooling2D
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.losses import categorical_crossentropy
 
@@ -18,6 +18,9 @@ class Generator(tf.keras.Model):
         # Loss hyperparameters
         self.alpha = hp.alpha
         self.beta = hp.beta
+
+        self.a_min = hp.ak_min
+        self.a_max = hp.ak_max
 
         # Adam optimizer with 1e-4 lr
         self.optimizer = Adam(learning_rate=hp.learning_rate)
@@ -107,14 +110,16 @@ class Generator(tf.keras.Model):
     def get_value(self, image):
         return self.dense_1(self.flatten(image))
 
+    def scale_action_space(self, act):
+        return self.a_min + (self.a_max-self.a_min) * ((act - 1) / (self.L - 1))
+
     @tf.function
     def loss_function(self, state, y_model, d_model):
         # Reward
         R = d_model - self.alpha * tf.reduce_mean(tf.square(state - y_model))
 
         # ========= A2C RL training =========
-        policy, value = self.call(state)
-        prob, act = policy
+        (prob, act), value = self.call(state)
 
         # ======= Value Loss =======
         advantage = R - value
@@ -189,9 +194,9 @@ class Discriminator(tf.keras.Model):
         return gp
 
     @tf.function
-    def loss_function(self, x_model, x_expert, d_model, d_expert):
+    def loss_function(self, y_model, y_expert, d_model, d_expert):
         # WGAN discriminator loss
         wgan_disc_loss = tf.reduce_sum(d_model) - tf.reduce_sum(d_expert)
         # Gradient penalty
-        gp = self._gradient_penalty(x_expert, x_model)
+        gp = self._gradient_penalty(y_expert, y_model)
         return wgan_disc_loss + self.lda * gp

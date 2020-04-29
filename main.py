@@ -1,15 +1,19 @@
 import os
+import datetime
 from argparse import ArgumentParser, ArgumentTypeError
 
 import tensorflow as tf
 
 import nn.hyperparameters as hp
 import util.sys as sys
+import util.visualize as viz
 from nn.models import Generator, Discriminator
 from util.datasets import Datasets
+from util.lightroom.editor import PhotoEditor
 
 # Killing optional CPU driver warnings
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
+tf.keras.backend.set_floatx('float32')
 
 gpu_available = tf.config.list_physical_devices("GPU")
 
@@ -19,7 +23,7 @@ def parse_args():
 		if os.path.isdir(directory):
 			return os.path.normpath(directory)
 		else:
-			raise ArgumentTypeError(f"Invalid directory: {directory}")
+			raise ArgumentTypeError("Invalid directory: {}".format(directory))
 
 	parser = ArgumentParser(
 		prog="FilterNet",
@@ -74,6 +78,16 @@ def parse_args():
 		default='C',
 		help="Which editor images to use for training")
 
+	tn.add_argument(
+		"--print-every-x-batches",
+		type=int, default=hp.print_every_x_batches,
+		help="After how many batches you want to print")
+
+	tn.add_argument(
+		"--save-every-x-batches",
+		type=int, default=hp.save_every_x_batches,
+		help="After how many batches you want to save")
+
 	# Subparser for test command
 	ts = subparsers.add_parser(
 		"test", description="Test the model on the given test data")
@@ -96,6 +110,18 @@ def parse_args():
 		choices=['C'],
 		default='C',
 		help="Which editor images to use for testing")
+
+	ts.add_argument(
+		"--display",
+		type=bool,
+		default=False,
+		help="True if you want to display the test output, false to save to file.")
+
+	ts.add_argument(
+		"--num-display",
+		type=int,
+		default=hp.test_images,
+		help="Number of test images to display, must be <= batch size")
 
 	# Subparser for evaluate command
 	ev = subparsers.add_parser(
@@ -121,12 +147,71 @@ def parse_args():
 ARGS = parse_args()
 
 
-def train():
-	pass
+def train(dataset, manager, generator, discriminator):
+	log_dir = os.path.join("logs/scalars/", datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))
+	summary_writer = tf.summary.create_file_writer(logdir=log_dir)
+
+	for e in range(ARGS.epochs):
+		print("========== Epoch {} ==========".format(e))
+		for b, batch in enumerate(dataset.data):
+			# Update Generator
+			for _ in range(hp.gen_update_freq):
+				with tf.GradientTape() as gen_tape:
+					x_model = batch[:, 0]
+					(prob, act), value = generator(x_model)
+					act = generator.scale_action_space(act)
+
+					y_model = PhotoEditor.edit(x_model.numpy(), act.numpy())
+					y_model = tf.convert_to_tensor(y_model, dtype=tf.float32)
+					d_model = discriminator(x_model)
+
+					gen_loss = generator.loss_function(x_model, y_model, d_model)
+
+				gen_grad = gen_tape.gradient(gen_loss, generator.trainable_variables)
+				generator.optimizer.apply_gradients(
+					zip(gen_grad, generator.trainable_variables))
+
+			# Update Discriminator
+			for _ in range(hp.disc_update_freq):
+				with tf.GradientTape() as disc_tape:
+					x_model, y_expert = batch[:, 0], batch[:, 1]
+					(prob, act), value = generator(x_model)
+					act = generator.scale_action_space(act)
+
+					y_model = PhotoEditor.edit(x_model.numpy(), act.numpy())
+					y_model = tf.convert_to_tensor(y_model, dtype=tf.float32)
+					d_expert = discriminator(y_expert)
+					d_model = discriminator(y_model)
+
+					disc_loss = discriminator.loss_function(
+						y_model, y_expert, d_model, d_expert)
+
+				disc_grad = disc_tape.gradient(disc_loss, discriminator.trainable_variables)
+				discriminator.optimizer.apply_gradients(
+					zip(disc_grad, discriminator.trainable_variables))
+
+			if b % ARGS.print_every_x_batches == 0:
+				print("Batch: {} Generator Loss: {} Discriminator Loss: {}".format(b, gen_loss, disc_loss))
+				with summary_writer.as_default():
+					tf.summary.scalar('disc_loss', disc_loss,
+									  step=discriminator.optimizer.iterations)
+					tf.summary.scalar('gen_loss', gen_loss,
+									  step=generator.optimizer.iterations)
+
+			if b % ARGS.save_every_x_batches == 0:
+				manager.save()
 
 
-def test():
-	pass
+
+def test(dataset, generator):
+	for batch in dataset.data:
+		x_model = batch[:, 0]
+		policy, value = generator(batch)
+		prob, act = policy
+		y_model = PhotoEditor.edit(x_model, act)
+		# Call visualizer to visualize images
+		viz.visualize_batch(batch, y_model, ARGS.display, ARGS.num_display)
+		break
 
 
 def main():
@@ -146,6 +231,10 @@ def main():
 		checkpoint, ARGS.checkpoint_dir,
 		max_to_keep=3)
 
+	if ARGS.command != 'train' or ARGS.restore_checkpoint:
+		# Restores the latest checkpoint using from the manager
+		checkpoint.restore(manager.latest_checkpoint)
+
 	try:
 		with tf.device("/device:" + ARGS.device):
 			if ARGS.command == "train":
@@ -153,16 +242,13 @@ def main():
 				dataset = Datasets(
 					ARGS.untouched_dir, ARGS.edited_dir, "train", ARGS.editor)
 
-				for a in dataset.data:
-					generator(a[0, 0])
-
-				pass
+				train(dataset, manager, generator, discriminator)
 
 			if ARGS.command == 'test':
 				# test here!
 				dataset = Datasets(
 					ARGS.untouched_dir, ARGS.edited_dir, "test", ARGS.editor)
-				pass
+				test(dataset, generator)
 
 			if ARGS.command == 'evaluate':
 				# Ensure the output directory exists
