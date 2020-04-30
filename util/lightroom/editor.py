@@ -57,6 +57,14 @@ def visualize_batch(batch, model_edits, display, num_display):
 	else:
 		plt.savefig('output.jpg', bbox_inches='tight')
 
+# Method to calculate PSNR between to images as a performance metric
+def PSNR(model, expert):
+	mean_squared_error = np.mean((expert - model) ** 2)
+	if (mean_squared_error == 0):
+		return 100
+	max_pixel_val = 1.0
+	return 20 * np.log10(max_pixel_val / np.sqrt(mean_squared_error))
+
 
 # ======== Custom Lightroom Filters ========
 class Filter:
