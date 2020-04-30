@@ -246,16 +246,16 @@ def performance(dataset, generator):
     ssim_rand = 0
     for batch in dataset.data:
         x_model = batch[:, 0]
-        policy, value = generator(batch)
-        prob, act = policy
-        y_model = editor.PhotoEditor(x_model, act)
+        prob, value = generator(x_model)
+        act_scaled, _ = generator.convert_prob_act(prob.numpy())
+        y_model = editor.PhotoEditor.edit(x_model.numpy(), act_scaled)
         rand_act = np.random.rand(batch.shape[0], hp.K)
-        rand_edits = editor.PhotoEditor(x_model, rand_act)
+        rand_edits = editor.PhotoEditor.edit(x_model.numpy(), rand_act)
         # Call to get metrics
         psnr += editor.PSNR(y_model, batch[:, 1])
-        ssim_val += ssim(y_model, batch[:, 1], 1)
+        ssim_val += ssim(y_model, batch[:, 1].numpy(), data_range=1, multichannel=True)
         psnr_rand += editor.PSNR(rand_edits, batch[:, 1])
-        ssim_rand += ssim(rand_edits, batch[:, 1], 1)
+        ssim_rand += ssim(rand_edits, batch[:, 1].numpy(), data_range=1, multichannel=True)
         batch_count += 1
     print("MODEL -> PSNR: {} SSIM: {} RANDOM -> PSNR: {} SSIM: {}".format(psnr / batch_count,
                                                                           ssim_val / batch_count,
