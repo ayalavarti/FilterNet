@@ -247,9 +247,10 @@ def performance(dataset, generator):
     for batch in dataset.data:
         x_model = batch[:, 0]
         prob, value = generator(x_model)
-        act_scaled, _ = generator.convert_prob_act(prob.numpy())
+        act_scaled, _ = generator.convert_prob_act(prob.numpy(), det=True)
         y_model = editor.PhotoEditor.edit(x_model.numpy(), act_scaled)
         rand_act = np.random.rand(batch.shape[0], hp.K)
+        rand_act = (rand_act * (hp.ak_max * 2)) - hp.ak_max
         rand_edits = editor.PhotoEditor.edit(x_model.numpy(), rand_act)
         # Call to get metrics
         psnr += editor.PSNR(y_model, batch[:, 1])
