@@ -10,12 +10,7 @@ import util.sys as sys
 import util.visualize as viz
 from nn.models import Generator, Discriminator
 from util.datasets import Datasets
-<<<<<<< HEAD
 from skimage.metrics import structural_similarity as ssim
-import numpy as np
-=======
-from util.lightroom.editor import PhotoEditor
->>>>>>> master
 
 # Killing optional CPU driver warnings
 import util.lightroom.editor as editor
@@ -192,7 +187,7 @@ def train(dataset, manager, generator, discriminator):
                     act_scaled, act = generator.convert_prob_act(prob.numpy())
                     act = tf.convert_to_tensor(act)
 
-                    y_model = PhotoEditor.edit(x_model.numpy(), act_scaled)
+                    y_model = editor.PhotoEditor.edit(x_model.numpy(), act_scaled)
                     y_model = tf.convert_to_tensor(y_model, dtype=tf.float32)
                     d_model = discriminator(x_model)
 
@@ -208,7 +203,7 @@ def train(dataset, manager, generator, discriminator):
                     prob, value = generator(x_model)
                     act_scaled, _ = generator.convert_prob_act(prob.numpy())
 
-                    y_model = PhotoEditor.edit(x_model.numpy(), act_scaled)
+                    y_model = editor.PhotoEditor.edit(x_model.numpy(), act_scaled)
                     y_model = tf.convert_to_tensor(y_model, dtype=tf.float32)
                     d_expert = discriminator(y_expert)
                     d_model = discriminator(y_model)
@@ -231,14 +226,14 @@ def test(dataset, generator):
         prob, value = generator(x_model)
         act_scaled, _ = generator.convert_prob_act(prob.numpy())
 
-        y_model = PhotoEditor.edit(x_model.numpy(), act_scaled)
+        y_model = editor.PhotoEditor.edit(x_model.numpy(), act_scaled)
         # Call visualizer to visualize images
         viz.visualize_batch(batch, y_model, ARGS.display, ARGS.num_display)
 
         prob, value = generator(x_model)
         act_scaled, _ = generator.convert_prob_act(prob.numpy(), det=True)
 
-        y_model = PhotoEditor.edit(x_model.numpy(), act_scaled)
+        y_model = editor.PhotoEditor.edit(x_model.numpy(), act_scaled)
         # Call visualizer to visualize images
         viz.visualize_batch(batch, y_model, ARGS.display, ARGS.num_display)
         break

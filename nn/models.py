@@ -2,14 +2,11 @@ import tensorflow as tf
 from tensorflow.python.keras.layers import LeakyReLU
 
 import nn.hyperparameters as hp
-<<<<<<< HEAD
-from tensorflow.keras.layers import Conv2D, Conv1D, Dense, BatchNormalization,\
-     Flatten, AveragePooling2D
-=======
+
 import numpy as np
 from tensorflow.keras.layers import Conv2D, Conv1D, Dense, BatchNormalization, \
     Flatten, AveragePooling2D
->>>>>>> master
+
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.losses import categorical_crossentropy
 
