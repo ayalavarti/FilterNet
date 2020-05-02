@@ -148,7 +148,7 @@ def parse_args():
     pf = subparsers.add_parser(
         "performance",
         description="Evaluate the model by getting PSNR and SSIM metrics")
-    tn.set_defaults(command="performance")
+    pf.set_defaults(command="performance")
 
     pf.add_argument(
         "--untouched-dir",
