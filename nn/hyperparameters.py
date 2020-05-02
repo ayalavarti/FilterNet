@@ -2,6 +2,7 @@
 img_size = 128
 
 # Training parameters
+
 num_epochs = 40
 batch_size = 100
 learning_rate = 5e-4
@@ -17,6 +18,7 @@ test_images = 5
 # Model hyper-parameters
 L = 33
 K = 11
+
 alpha = 100
 beta = 1e-3
 lda = 10.0
