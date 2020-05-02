@@ -33,38 +33,39 @@ def sigmoid_inverse(vector):
 
 # Method to be used for visualizing output images
 def visualize_batch(batch, model_edits, display, num_display):
-	if not display:
-		matplotlib.use('Agg')
-	num_images = min(batch.shape[0], num_display)
-	fig, axs = plt.subplots(nrows=3, ncols=num_images)
-	fig.suptitle("Images\n ")
-	for ind, ax in enumerate(axs):
-		for i in range(len(ax)):
-			a = ax[i]
-			if ind == 0:
-				a.imshow(batch[i, 0], cmap="Greys")
-				a.set(title="Unedited")
-			elif ind == 1:
-				a.imshow(model_edits[i], cmap="Greys")
-				a.set(title="Model")
-			else:
-				a.imshow(batch[i, 1], cmap="Greys")
-				a.set(title="Expert")
-			plt.setp(a.get_xticklabels(), visible=False)
-			plt.setp(a.get_yticklabels(), visible=False)
-			a.tick_params(axis='both', which='both', length=0)
-	if display:
-		plt.show()
-	else:
-		plt.savefig('output.jpg', bbox_inches='tight')
+    if not display:
+        matplotlib.use('Agg')
+    num_images = min(batch.shape[0], num_display)
+    fig, axs = plt.subplots(nrows=3, ncols=num_images)
+    fig.suptitle("Images\n ")
+    for ind, ax in enumerate(axs):
+        for i in range(len(ax)):
+            a = ax[i]
+            if ind == 0:
+                a.imshow(batch[i, 0], cmap="Greys")
+                a.set(title="Unedited")
+            elif ind == 1:
+                a.imshow(model_edits[i], cmap="Greys")
+                a.set(title="Model")
+            else:
+                a.imshow(batch[i, 1], cmap="Greys")
+                a.set(title="Expert")
+            plt.setp(a.get_xticklabels(), visible=False)
+            plt.setp(a.get_yticklabels(), visible=False)
+            a.tick_params(axis='both', which='both', length=0)
+    if display:
+        plt.show()
+    else:
+        plt.savefig('output.jpg', bbox_inches='tight')
+
 
 # Method to calculate PSNR between to images as a performance metric
 def PSNR(model, expert):
-	mean_squared_error = np.mean((expert - model) ** 2)
-	if (mean_squared_error == 0):
-		return 100
-	max_pixel_val = 1.0
-	return 20 * np.log10(max_pixel_val / np.sqrt(mean_squared_error))
+    mean_squared_error = np.mean((expert - model) ** 2)
+    if mean_squared_error == 0:
+        return 100
+    max_pixel_val = 1.0
+    return 20 * np.log10(max_pixel_val / np.sqrt(mean_squared_error))
 
 
 # ======== Custom Lightroom Filters ========
@@ -305,25 +306,25 @@ class PhotoEditor:
     @classmethod
     def edit(cls, photos, parameters, ind=None):
         """
-		Static class method that will edit a batch of images given a batch of
-		:parameters. Applies each of the K filters for the ith image using the
-		ith set of K parameters. Each parameter should be between [-1, 1].
+        Static class method that will edit a batch of images given a batch of
+        :parameters. Applies each of the K filters for the ith image using the
+        ith set of K parameters. Each parameter should be between [-1, 1].
 
-		Can optionally include a list of indices indicate specific filters to
-		apply. However, parameters adn photos should still be of the required
-		shape (detailed below).
+        Can optionally include a list of indices indicate specific filters to
+        apply. However, parameters adn photos should still be of the required
+        shape (detailed below).
 
-		Order of filters reflects order of parameters:
-		[clarity, contrast, exposure, temp, tint, whites, blacks, highlights,
-		shadows, vibrance, saturation]
+        Order of filters reflects order of parameters:
+        [clarity, contrast, exposure, temp, tint, whites, blacks, highlights,
+        shadows, vibrance, saturation]
 
-		:param photos: numpy array of shape
-					[hp.batch_size, hp.img_size, hp.img_size, 3]
-		:param parameters: numpy array of shape
-					[hp.batch_size, hp.K]
-		:param ind: list of indices to apply filters of
-		:return:
-		"""
+        :param photos: numpy array of shape
+                    [hp.batch_size, hp.img_size, hp.img_size, 3]
+        :param parameters: numpy array of shape
+                    [hp.batch_size, hp.K]
+        :param ind: list of indices to apply filters of
+        :return:
+        """
         if parameters.shape[1] != hp.K:
             raise ValueError("Incorrect number of filter parameters found")
         edited = np.zeros(np.shape(photos))

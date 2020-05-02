@@ -2,10 +2,9 @@
 img_size = 128
 
 # Training parameters
-
-num_epochs = 40
+num_epochs = 10
 batch_size = 100
-learning_rate = 5e-4
+learning_rate = 1e-4
 beta_1 = 0.5
 gen_update_freq = 1
 disc_update_freq = 5

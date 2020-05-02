@@ -1,5 +1,4 @@
 import os
-import datetime
 from argparse import ArgumentParser, ArgumentTypeError
 
 import tensorflow as tf
@@ -10,11 +9,10 @@ import util.sys as sys
 import util.visualize as viz
 from nn.models import Generator, Discriminator
 from util.datasets import Datasets
+from util.lightroom.editor import PhotoEditor, PSNR
 from skimage.metrics import structural_similarity as ssim
 
 # Killing optional CPU driver warnings
-import util.lightroom.editor as editor
-
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 tf.keras.backend.set_floatx('float32')
 
@@ -187,7 +185,7 @@ def train(dataset, manager, generator, discriminator):
                     act_scaled, act = generator.convert_prob_act(prob.numpy())
                     act = tf.convert_to_tensor(act)
 
-                    y_model = editor.PhotoEditor.edit(x_model.numpy(), act_scaled)
+                    y_model = PhotoEditor.edit(x_model.numpy(), act_scaled)
                     y_model = tf.convert_to_tensor(y_model, dtype=tf.float32)
                     d_model = discriminator(x_model)
 
@@ -203,7 +201,7 @@ def train(dataset, manager, generator, discriminator):
                     prob, value = generator(x_model)
                     act_scaled, _ = generator.convert_prob_act(prob.numpy())
 
-                    y_model = editor.PhotoEditor.edit(x_model.numpy(), act_scaled)
+                    y_model = PhotoEditor.edit(x_model.numpy(), act_scaled)
                     y_model = tf.convert_to_tensor(y_model, dtype=tf.float32)
                     d_expert = discriminator(y_expert)
                     d_model = discriminator(y_model)
@@ -226,42 +224,64 @@ def test(dataset, generator):
         prob, value = generator(x_model)
         act_scaled, _ = generator.convert_prob_act(prob.numpy())
 
-        y_model = editor.PhotoEditor.edit(x_model.numpy(), act_scaled)
+        y_model = PhotoEditor.edit(x_model.numpy(), act_scaled)
         # Call visualizer to visualize images
         viz.visualize_batch(batch, y_model, ARGS.display, ARGS.num_display)
 
         prob, value = generator(x_model)
-        act_scaled, _ = generator.convert_prob_act(prob.numpy(), det=True)
+        act_scaled, _ = generator.convert_prob_act(prob.numpy(), det=True, det_avg=hp.det_avg)
 
-        y_model = editor.PhotoEditor.edit(x_model.numpy(), act_scaled)
+        y_model = PhotoEditor.edit(x_model.numpy(), act_scaled)
         # Call visualizer to visualize images
         viz.visualize_batch(batch, y_model, ARGS.display, ARGS.num_display)
         break
 
+
 def performance(dataset, generator):
+    print("====== Calculating performance metrics =====")
     batch_count = 0
     psnr = 0
     psnr_rand = 0
     ssim_val = 0
     ssim_rand = 0
+    psnr_baseline = 0
+    ssim_baseline = 0
     for batch in dataset.data:
         x_model = batch[:, 0]
         prob, value = generator(x_model)
-        act_scaled, _ = generator.convert_prob_act(prob.numpy(), det=True)
-        y_model = editor.PhotoEditor.edit(x_model.numpy(), act_scaled)
+        act_scaled, _ = generator.convert_prob_act(prob.numpy(), det=True,
+                                                   det_avg=hp.det_avg)
+        y_model = PhotoEditor.edit(x_model.numpy(), act_scaled)
         rand_act = np.random.rand(batch.shape[0], hp.K)
         rand_act = (rand_act * (hp.ak_max * 2)) - hp.ak_max
-        rand_edits = editor.PhotoEditor.edit(x_model.numpy(), rand_act)
+        rand_edits = PhotoEditor.edit(x_model.numpy(), rand_act)
+
         # Call to get metrics
-        psnr += editor.PSNR(y_model, batch[:, 1])
-        ssim_val += ssim(y_model, batch[:, 1].numpy(), data_range=1, multichannel=True)
-        psnr_rand += editor.PSNR(rand_edits, batch[:, 1])
-        ssim_rand += ssim(rand_edits, batch[:, 1].numpy(), data_range=1, multichannel=True)
+        psnr += PSNR(y_model, batch[:, 1])
+        ssim_val += ssim(y_model, batch[:, 1].numpy(), data_range=1,
+                         multichannel=True)
+
+        psnr_rand += PSNR(rand_edits, batch[:, 1])
+        ssim_rand += ssim(rand_edits, batch[:, 1].numpy(), data_range=1,
+                          multichannel=True)
+
+        psnr_baseline += PSNR(x_model.numpy(), batch[:, 1])
+        ssim_baseline += ssim(x_model.numpy(), batch[:, 1].numpy(), data_range=1,
+                              multichannel=True)
+
         batch_count += 1
-    print("MODEL -> PSNR: {} SSIM: {} RANDOM -> PSNR: {} SSIM: {}".format(psnr / batch_count,
-                                                                          ssim_val / batch_count,
-                                                                          psnr_rand / batch_count,
-                                                                          ssim_rand / batch_count))
+
+    print("=== MODEL ===")
+    print("PSNR: {} | SSIM: {}".format(psnr / batch_count,
+                                       ssim_val / batch_count))
+
+    print("=== RANDOM ===")
+    print("PSNR: {} | SSIM: {}".format(psnr_rand / batch_count,
+                                       ssim_rand / batch_count))
+
+    print("=== BASELINE ===")
+    print("PSNR: {} | SSIM: {}".format(psnr_baseline / batch_count,
+                                       ssim_baseline / batch_count))
 
 
 def main():
@@ -283,8 +303,8 @@ def main():
 
     if ARGS.command != 'train' or ARGS.restore_checkpoint:
         # Restores the latest checkpoint using from the manager
-        print("Loading checkpoint")
         checkpoint.restore(manager.latest_checkpoint)
+        print("Restored checkpoint")
 
     try:
         with tf.device("/device:" + ARGS.device):

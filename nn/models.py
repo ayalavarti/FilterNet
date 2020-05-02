@@ -2,11 +2,9 @@ import tensorflow as tf
 from tensorflow.python.keras.layers import LeakyReLU
 
 import nn.hyperparameters as hp
-
 import numpy as np
 from tensorflow.keras.layers import Conv2D, Conv1D, Dense, BatchNormalization, \
     Flatten, AveragePooling2D
-
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.losses import categorical_crossentropy
 
@@ -102,13 +100,13 @@ class Generator(tf.keras.Model):
     def get_value(self, image):
         return self.dense_1(self.flatten(image))
 
-    def convert_prob_act(self, prob, det=False):
+    def convert_prob_act(self, prob, det=False, det_avg=None):
         if det:
-            act = np.argsort(-prob)[:, :, :hp.det_avg]
-            comb_act = np.array([self._scale_action_space(act[:, :, i]) for i in range(hp.det_avg)])
+            act = np.argsort(-prob)[:, :, :det_avg]
+            comb_act = np.array([self._scale_action_space(act[:, :, i]) for i in range(det_avg)])
             act_scaled = np.mean(comb_act, axis=0)
         else:
-            act = [[np.random.choice(hp.L, p=prob[i][k]) for k in range(hp.K)] for i in range(hp.batch_size)]
+            act = [[np.random.choice(hp.L, p=prob[i][k]) for k in range(hp.K)] for i in range(len(prob))]
             act = np.array(act)
             act_scaled = self._scale_action_space(act)
 
