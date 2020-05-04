@@ -11,6 +11,8 @@ from nn.models import Generator, Discriminator
 from util.datasets import Datasets
 from util.lightroom.editor import PhotoEditor, PSNR
 from skimage.metrics import structural_similarity as ssim
+from skimage.transform import resize
+from skimage import io
 
 # Killing optional CPU driver warnings
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
@@ -21,6 +23,12 @@ print(gpu_available)
 
 
 def parse_args():
+    def valid_file(filepath):
+        if os.path.exists(filepath):
+            return os.path.normpath(filepath)
+        else:
+            raise ArgumentTypeError("Invalid file: {}".format(filepath))
+
     def valid_dir(directory):
         if os.path.isdir(directory):
             return os.path.normpath(directory)
@@ -127,18 +135,16 @@ def parse_args():
 
     # Subparser for evaluate command
     ev = subparsers.add_parser(
-        "evaluate", description="Evaluate / run the model on the given data")
+        "evaluate", description="Run the model on the given image")
     ev.set_defaults(command="evaluate")
 
     ev.add_argument(
-        "--image-dir",
-        type=valid_dir,
-        default=os.getcwd() + "/data/test/untouched",
-        help="Directory of untouched images for evaluating")
+        "--image-path",
+        type=valid_file,
+        help="Path to image to edit")
 
     ev.add_argument(
         "--output-dir",
-        type=valid_dir,
         default=os.getcwd() + "/output/",
         help="Directory of output edited images for testing")
 
@@ -284,6 +290,21 @@ def performance(dataset, generator):
                                        ssim_baseline / batch_count))
 
 
+def edit_original(big_image, generator):
+    """
+    Takes in a full-sized image and runs the generator on a smaller version.
+    Returns an edited version of the full-sized image.
+    """
+    resized = resize(big_image, (hp.img_size, hp.img_size)).astype(np.float32)
+
+    prob, _ = generator(resized[None])
+    act_scaled, _ = generator.convert_prob_act(prob.numpy())
+
+    orig_edit = PhotoEditor.edit((big_image/255)[None], act_scaled)
+
+    return orig_edit[0]
+
+
 def main():
     # Initialize generator and discriminator models
     generator = Generator()
@@ -324,8 +345,14 @@ def main():
             if ARGS.command == 'evaluate':
                 # Ensure the output directory exists
                 sys.enforce_dir(ARGS.output_dir)
+                img_name = ARGS.image_path.split("/")[-1].split(".")[0]
                 # evaluate here!
-                dataset = Datasets(ARGS.image_dir, None, "evaluate")
+                img = io.imread(ARGS.image_path)
+                edited_img = edit_original(img, generator)
+
+                io.imshow(edited_img)
+                io.show()
+                io.imsave(ARGS.output_dir + "/" + img_name + "-edited.png", edited_img)
                 pass
 
             if ARGS.command == 'performance':
