@@ -195,10 +195,14 @@ def train(dataset, manager, generator, discriminator):
                     y_model = tf.convert_to_tensor(y_model, dtype=tf.float32)
                     d_model = discriminator(x_model)
 
-                    gen_loss = generator.loss_function(x_model, y_model, d_model, prob, act, value)
+                    gen_loss = generator.loss_function(x_model, y_model,
+                                                       d_model, prob, act,
+                                                       value)
 
-                gen_grad = gen_tape.gradient(gen_loss, generator.trainable_variables)
-                generator.optimizer.apply_gradients(zip(gen_grad, generator.trainable_variables))
+                gen_grad = gen_tape.gradient(gen_loss,
+                                             generator.trainable_variables)
+                generator.optimizer.apply_gradients(
+                    zip(gen_grad, generator.trainable_variables))
 
             # Update Discriminator
             for i in range(hp.disc_update_freq):
@@ -212,13 +216,18 @@ def train(dataset, manager, generator, discriminator):
                     d_expert = discriminator(y_expert)
                     d_model = discriminator(y_model)
 
-                    disc_loss = discriminator.loss_function(y_model, y_expert, d_model, d_expert)
+                    disc_loss = discriminator.loss_function(y_model, y_expert,
+                                                            d_model, d_expert)
 
-                disc_grad = disc_tape.gradient(disc_loss, discriminator.trainable_variables)
-                discriminator.optimizer.apply_gradients(zip(disc_grad, discriminator.trainable_variables))
+                disc_grad = disc_tape.gradient(disc_loss,
+                                               discriminator.trainable_variables)
+                discriminator.optimizer.apply_gradients(
+                    zip(disc_grad, discriminator.trainable_variables))
 
             if b % ARGS.print_every_x_batches == 0:
-                print("Epoch: {} Batch: {} Generator Loss: {} Discriminator Loss: {}".format(e, b, gen_loss, disc_loss))
+                print(
+                    "Epoch: {} Batch: {} Generator Loss: {} Discriminator Loss: {}".format(
+                        e, b, gen_loss, disc_loss))
 
             if b % ARGS.save_every_x_batches == 0:
                 manager.save()
@@ -235,7 +244,8 @@ def test(dataset, generator):
         viz.visualize_batch(batch, y_model, ARGS.display, ARGS.num_display)
 
         prob, value = generator(x_model)
-        act_scaled, _ = generator.convert_prob_act(prob.numpy(), det=True, det_avg=hp.det_avg)
+        act_scaled, _ = generator.convert_prob_act(prob.numpy(), det=True,
+                                                   det_avg=hp.det_avg)
 
         y_model = PhotoEditor.edit(x_model.numpy(), act_scaled)
         # Call visualizer to visualize images
@@ -272,7 +282,8 @@ def performance(dataset, generator):
                           multichannel=True)
 
         psnr_baseline += PSNR(x_model.numpy(), batch[:, 1])
-        ssim_baseline += ssim(x_model.numpy(), batch[:, 1].numpy(), data_range=1,
+        ssim_baseline += ssim(x_model.numpy(), batch[:, 1].numpy(),
+                              data_range=1,
                               multichannel=True)
 
         batch_count += 1
@@ -298,7 +309,8 @@ def edit_original(big_image, generator):
     resized = resize(big_image, (hp.img_size, hp.img_size)).astype(np.float32)
 
     prob, _ = generator(resized[None])
-    act_scaled, _ = generator.convert_prob_act(prob.numpy())
+    act_scaled, _ = generator.convert_prob_act(prob.numpy(), det=True,
+                                               det_avg=hp.det_avg)
 
     orig_edit = PhotoEditor.edit((big_image/255)[None], act_scaled)
 
@@ -352,7 +364,8 @@ def main():
 
                 io.imshow(edited_img)
                 io.show()
-                io.imsave(ARGS.output_dir + "/" + img_name + "-edited.png", edited_img)
+                io.imsave(ARGS.output_dir + "/" + img_name + "-edited.png",
+                          edited_img)
                 pass
 
             if ARGS.command == 'performance':

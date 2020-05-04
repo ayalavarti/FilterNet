@@ -28,7 +28,7 @@ class Datasets:
 		self.file_list = self._image_file_list(self.u_dir, self.e_dir)
 		self.data_size = len(self.file_list)
 
-		# Set up file path lists of both untouched and edited imamges
+		# Set up file path lists of both untouched and edited images
 		self._create_img_lists(h=editor)
 		self.new_img_shape = tf.cast((hp.img_size, hp.img_size), tf.int32)
 
@@ -59,7 +59,7 @@ class Datasets:
 
 			if untouched_images - edited_images != set():
 				print("Non overlapping images detected. Only using image pairs"
-					  "with overlapping untouched and edited images")
+					  " with overlapping untouched and edited images")
 			return list(untouched_images.intersection(edited_images))
 		return list(untouched_images)
 

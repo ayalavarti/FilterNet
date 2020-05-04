@@ -2,8 +2,8 @@
 img_size = 128
 
 # Training parameters
-num_epochs = 10
-batch_size = 100
+num_epochs = 40
+batch_size = 20
 learning_rate = 1e-4
 beta_1 = 0.5
 gen_update_freq = 1
@@ -17,13 +17,12 @@ test_images = 5
 # Model hyper-parameters
 L = 33
 K = 11
-
-alpha = 100
+alpha = 50
 beta = 1e-3
 lda = 10.0
 
 # Scale hyper-parameters
-ak_min = -0.50
-ak_max = 0.50
+ak_min = -0.4
+ak_max = 0.6
 
 det_avg = 5
