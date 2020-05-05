@@ -157,13 +157,13 @@ def parse_args():
     pf.add_argument(
         "--untouched-dir",
         type=valid_dir,
-        default=os.getcwd() + "/data/train/untouched",
+        default=os.getcwd() + "/data/test/untouched",
         help="Directory of untouched images for training")
 
     pf.add_argument(
         "--edited-dir",
         type=valid_dir,
-        default=os.getcwd() + "/data/train/edited",
+        default=os.getcwd() + "/data/test/edited",
         help="Directory of expert edited images for training")
 
     pf.add_argument(
@@ -336,7 +336,7 @@ def main():
 
     if ARGS.command != 'train' or ARGS.restore_checkpoint:
         # Restores the latest checkpoint using from the manager
-        checkpoint.restore(manager.latest_checkpoint)
+        checkpoint.restore(manager.latest_checkpoint).expect_partial()
         print("Restored checkpoint")
 
     try:

@@ -107,7 +107,7 @@ class Generator(tf.keras.Model):
             weights = weights.transpose(2, 0, 1)
             act = np.argsort(prob, axis=2)[:, :, -det_avg:]
             comb_act = np.array([self._scale_action_space(act[:, :, i]) for i in range(det_avg)])
-            act_scaled = np.average(comb_act, axis=0, weights=weights)
+            act_scaled = np.average(comb_act, axis=0, weights=None)
         else:
             act = [[np.random.choice(hp.L, p=prob[i][k]) for k in range(hp.K)] for i in range(len(prob))]
             act = np.array(act)
