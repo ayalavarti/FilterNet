@@ -102,9 +102,12 @@ class Generator(tf.keras.Model):
 
     def convert_prob_act(self, prob, det=False, det_avg=None):
         if det:
-            act = np.argsort(-prob)[:, :, :det_avg]
+            # act = np.argsort(-prob)[:, :, :det_avg]
+            weights = np.sort(prob, axis=2)[:, :, -det_avg:]
+            weights = weights.transpose(2, 0, 1)
+            act = np.argsort(prob, axis=2)[:, :, -det_avg:]
             comb_act = np.array([self._scale_action_space(act[:, :, i]) for i in range(det_avg)])
-            act_scaled = np.mean(comb_act, axis=0)
+            act_scaled = np.average(comb_act, axis=0, weights=weights)
         else:
             act = [[np.random.choice(hp.L, p=prob[i][k]) for k in range(hp.K)] for i in range(len(prob))]
             act = np.array(act)
