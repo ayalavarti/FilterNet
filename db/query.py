@@ -1,81 +1,16 @@
 import os
 from argparse import ArgumentParser, ArgumentTypeError
 import psycopg2
-from db.query_strings import *
-
-
-class DatabaseQuery:
-    def __init__(self, dbURL):
-        self.dbURL = dbURL
-        self._connect()
-
-    def execute(self, command, commit=False, ret=False):
-        """
-        Execute a SQL command on the database.
-        """
-        if self.conn is None:
-            raise ValueError("No connection established to the database")
-
-        try:
-            self.cur.execute(command)
-
-            if commit:
-                self.conn.commit()
-
-            if ret:
-                res = self.cur.fetchall()
-                return res
-        except (Exception, psycopg2.DatabaseError) as error:
-            print(error)
-            self.close()
-
-    def _connect(self):
-        """
-        Connect to the PostgreSQL database server
-        """
-        self.conn = None
-        try:
-            # Connect to the PostgreSQL server
-            print('Connecting to the PostgreSQL database...')
-            self.conn = psycopg2.connect(self.dbURL)
-            self.cur = self.conn.cursor()
-        except (Exception, psycopg2.DatabaseError) as error:
-            print(error)
-            if self.conn is not None:
-                self.close()
-
-    def close(self):
-        """
-        Close the connection to the database
-        """
-        if self.conn is not None:
-            # Close the communication with the PostgreSQL
-            print("Closing database connection")
-            self.conn.close()
-            self.conn = None
-
-
-class FilterNetQuery(DatabaseQuery):
-    def __init__(self, dbURL):
-        super().__init__(dbURL)
-
-    def status(self):
-        db_version = self.execute(VERSION, ret=True)
-        if len(db_version) > 0:
-            return 'PostgreSQL database version:' + db_version[0][0]
-
-    def create_tables(self):
-        self.execute(CREATE_TABLE, commit=True)
-
-
+from query_strings import *
+import tempfile
 
 
 def parse_args():
-    def valid_file(filepath):
-        if os.path.exists(filepath):
-            return os.path.normpath(filepath)
+    def valid_dir(directory):
+        if os.path.isdir(directory):
+            return os.path.normpath(directory)
         else:
-            raise ArgumentTypeError("Invalid file: {}".format(filepath))
+            raise ArgumentTypeError("Invalid directory: {}".format(directory))
 
     parser = ArgumentParser(
         prog="FilterNet db util",
@@ -85,15 +20,27 @@ def parse_args():
     subparsers.required = True
     subparsers.dest = "command"
 
-    st = subparsers.add_parser(
-        "status",
-        description="Print current status of database")
-    st.set_defaults(command="status")
-
     tb = subparsers.add_parser(
         "table",
         description="Create table structure in database")
     tb.set_defaults(command="table")
+
+    ins = subparsers.add_parser(
+        "insert",
+        description="Insert checkpoint directory in database")
+    ins.add_argument(
+        "--generator",
+        default='generator.h5',
+        help="Generator weights filepath")
+    ins.add_argument(
+        "--discriminator",
+        default='discriminator.h5',
+        help="Discriminator weights filepath")
+    ins.set_defaults(command="insert")
+
+    rd = subparsers.add_parser(
+        "read")
+    rd.set_defaults(command="read")
 
     return parser.parse_args()
 
@@ -101,27 +48,82 @@ def parse_args():
 ARGS = parse_args()
 
 
+class DatabaseQuery:
+    def __init__(self, dbURL):
+        self.dbURL = dbURL
+
+    def execute(self, command, args=None, commit=False, ret=False):
+        """
+        Executes given SQL command.
+        """
+        conn = None
+        try:
+            # Connect to the Postgres database
+            print('Connecting to the PostgreSQL database')
+            conn = psycopg2.connect(self.dbURL)
+            # Create a new cursor object
+            cur = conn.cursor()
+            print('Executing command')
+            cur.execute(command, args)
+
+            if commit:
+                conn.commit()
+
+            if ret:
+                res = cur.fetchone()
+                return res, True
+            return True
+
+        except (Exception, psycopg2.DatabaseError) as error:
+            print(error)
+            return False
+
+        finally:
+            if conn is not None:
+                print('Closing connection')
+                conn.close()
+
+
+class FilterNetQuery(DatabaseQuery):
+    def __init__(self, dbURL):
+        super().__init__(dbURL)
+
+    def create_tables(self):
+        self.execute(CREATE_TABLE, commit=True)
+
+    def insert_model(self, gen_path, disc_path):
+        gen = open(gen_path, 'rb').read()
+        disc = open(disc_path, 'rb').read()
+        self.execute(INSERT_MODEL, (psycopg2.Binary(gen), psycopg2.Binary(disc), ), commit=True)
+
+    def read_model(self, id):
+        return self.execute(SELECT_MODEL, (id, ), ret=True)
+
+
 def main():
     dbURI = os.environ["DATABASE_URL"]
 
     query = FilterNetQuery(dbURI)
-    if query.conn is None:
-        exit(1)
 
-    try:
-        if ARGS.command == 'status':
-            print(query.status())
+    if ARGS.command == 'table':
+        query.create_tables()
+        print("Tables created")
 
-        if ARGS.command == 'table':
-            query.create_tables()
+    elif ARGS.command == 'insert':
+        query.insert_model(ARGS.generator, ARGS.discriminator)
+        print("Checkpoint directory inserted")
 
-    except ValueError:
-        print("ERROR: Database connection.")
+    elif ARGS.command == 'read':
+        blob, ret = query.read_model(1)
 
-    finally:
-        if query is not None:
-            query.close()
-            print("Database connection closed")
+        if ret is None or not ret:
+            exit(1)
+
+        with tempfile.NamedTemporaryFile(suffix='.h5') as gen_file,\
+                tempfile.NamedTemporaryFile(suffix='.h5') as disc_file:
+            gen_file.write(blob[0])
+            disc_file.write(blob[1])
+            print()
 
 
 if __name__ == "__main__":
