@@ -1,17 +1,11 @@
 import os
 from argparse import ArgumentParser, ArgumentTypeError
 import psycopg2
-from query_strings import *
+from db.query_strings import *
 import tempfile
 
 
 def parse_args():
-    def valid_dir(directory):
-        if os.path.isdir(directory):
-            return os.path.normpath(directory)
-        else:
-            raise ArgumentTypeError("Invalid directory: {}".format(directory))
-
     parser = ArgumentParser(
         prog="FilterNet db util",
         description="Postgres database management for FilterNet")
@@ -30,11 +24,11 @@ def parse_args():
         description="Insert checkpoint directory in database")
     ins.add_argument(
         "--generator",
-        default='generator.h5',
+        default='model_weights/generator.h5',
         help="Generator weights filepath")
     ins.add_argument(
         "--discriminator",
-        default='discriminator.h5',
+        default='model_weights/discriminator.h5',
         help="Discriminator weights filepath")
     ins.set_defaults(command="insert")
 
@@ -42,10 +36,15 @@ def parse_args():
         "read")
     rd.set_defaults(command="read")
 
+    dl = subparsers.add_parser(
+        "delete")
+    dl.add_argument(
+        "--id", required=True,
+        help="ID of model to delete from database")
+
+    dl.set_defaults(command="delete")
+
     return parser.parse_args()
-
-
-ARGS = parse_args()
 
 
 class DatabaseQuery:
@@ -99,10 +98,14 @@ class FilterNetQuery(DatabaseQuery):
     def read_model(self, id):
         return self.execute(SELECT_MODEL, (id, ), ret=True)
 
+    def delete_model(self, id):
+        self.execute(DELETE_MODEL, (id, ), commit=True)
+
 
 def main():
-    dbURI = os.environ["DATABASE_URL"]
+    ARGS = parse_args()
 
+    dbURI = os.environ["DATABASE_URL"]
     query = FilterNetQuery(dbURI)
 
     if ARGS.command == 'table':
@@ -123,7 +126,10 @@ def main():
                 tempfile.NamedTemporaryFile(suffix='.h5') as disc_file:
             gen_file.write(blob[0])
             disc_file.write(blob[1])
-            print()
+
+    elif ARGS.command == 'delete':
+        query.delete_model(ARGS.id)
+        print("Model deleted")
 
 
 if __name__ == "__main__":

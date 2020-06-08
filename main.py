@@ -179,6 +179,11 @@ def parse_args():
 ARGS = parse_args()
 
 
+def save_model_weights(gen, disc):
+    gen.save_weights(ARGS.checkpoint_dir + "/generator.h5", save_format='h5')
+    disc.save_weights(ARGS.checkpoint_dir + "/discriminator.h5", save_format='h5')
+
+
 def train(dataset, manager, generator, discriminator):
     for e in range(ARGS.epochs):
         print("========== Epoch {} ==========".format(e))
@@ -231,6 +236,7 @@ def train(dataset, manager, generator, discriminator):
 
             if b % ARGS.save_every_x_batches == 0:
                 manager.save()
+                save_model_weights(generator, discriminator)
 
 
 def test(dataset, generator):
@@ -337,6 +343,7 @@ def main():
     if ARGS.command != 'train' or ARGS.restore_checkpoint:
         # Restores the latest checkpoint using from the manager
         checkpoint.restore(manager.latest_checkpoint).expect_partial()
+        save_model_weights(generator, discriminator)
         print("Restored checkpoint")
 
     try:

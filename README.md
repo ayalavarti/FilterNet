@@ -18,9 +18,15 @@ python main.py [-h] [--checkpoint-dir] [--device] {train, test} ...
 ```
 Use the `-h` or `--help` flags to specify optional arguments. For example `python main.py train -h`.
 
-## Training and TensorBoard
-To train, run
+## Web Commands
 ```
-python main.py train
+export FLASK_APP=app.py
+flask run
 ```
-To view TensorBoard logs, run `tensorboard --logdir logs/scalars`.
+
+## Postgres Commands
+```
+postgres -U <username>
+\c filternet
+\d models
+```
