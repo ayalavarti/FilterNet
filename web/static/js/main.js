@@ -1,76 +1,19 @@
-URL = window.URL;
+let previewNode = $("#template");
+let previews = $("#previews");
+let actions = $("#actions");
+let controls = $(".controls");
+
+previewNode.id = "";
+
+let previewTemplate = previewNode.parent().html();
+previewNode.remove();
 
 let infoTooltips;
-let userMediaStream;
-let rec;
-let input;
-
-let AudioContext = window.AudioContext || window.webkitAudioContext;
-let audioContext;
-
-let recordBtn = $(".mic_btn");
-
-recordBtn.click(function() {
-    toggleRecording();
-});
-
-
-function toggleRecording() {
-	if (rec && rec.recording){
-		stopRecording();
-	} else {
-		startRecording();
-	}
-}
-
-
-function startRecording() {
-    // Set up recording constraints
-    let constraints = { audio: true, video:false };
-
-	navigator.mediaDevices.getUserMedia(constraints).then(function(stream) {
-		// Create an audio context
-		audioContext = new AudioContext();
-
-		userMediaStream = stream;
-		input = audioContext.createMediaStreamSource(stream);
-
-		// Create Recorder object and record 2 channel sound
-		rec = new Recorder(input, { numChannels:2 });
-		// Start recording
-		rec.record();
-	}).catch(function(error) {
-	});
-}
-
-function stopRecording() {
-	// Stop recording
-	rec.stop();
-	// Stop microphone access
-	userMediaStream.getAudioTracks()[0].stop();
-	// Create WAV blob and send to server
-	rec.exportWAV(test);
-	rec = null;
-}
-
-function test(blob) {
-	let url = (window.URL || window.webkitURL).createObjectURL(blob);
-	let player = document.getElementById("audioPlayer");
-	player.src = url;
-	player.load();
-
-	let httpRequest = new XMLHttpRequest();
-	httpRequest.onload = function() {
-		let detectedText = this.responseText;
-		$("#accentPred").text(detectedText);
-	};
-	httpRequest.open("POST", "/classify", true);
-	httpRequest.send(blob);
-}
-
+let statusTooltip;
 
 $(document).ready(function () {
     initTooltips();
+    previews.show();
 });
 
 
@@ -80,12 +23,93 @@ $(document).ready(function () {
 function initTooltips() {
     infoTooltips = tippy(".info", {
         animation: "scale",
+        theme: "filternet",
+        maxWidth: 200,
         arrow: true,
         arrowType: "round",
-        theme: "accenter",
-        hideOnClick: true,
         inertia: true,
         sticky: true,
         placement: "bottom",
     });
+
+    statusTooltip = tippy("#status", {
+        animation: "scale",
+        theme: "filternet",
+        maxWidth: 250,
+        trigger: 'manual',
+        hideOnClick: true,
+        inertia: true,
+        arrow: false,
+        sticky: true,
+        allowHTML: true,
+        placement: "top-start",
+    })[0];
 }
+
+let drop = new Dropzone("div#actions", {
+    url: "/edit",
+    thumbnailWidth: 60,
+    thumbnailHeight: 60,
+    parallelUploads: 1,
+    previewTemplate: previewTemplate,
+    autoQueue: false,
+    previewsContainer: "#previews",
+    acceptedFiles: "image/*",
+    clickable: ".fileinput-button",
+    maxFiles: 4
+});
+
+drop.on("addedfile", function(file) {
+    console.log("Added file");
+    file.previewElement.querySelector(".start").onclick = function() { drop.enqueueFile(file); };
+
+});
+
+drop.on("sending", function(file, xhr, formData) {
+    file.previewElement.querySelector(".start").setAttribute("disabled", "disabled");
+    formData.append("filesize", file.size);
+});
+
+drop.on("dragenter", function() {
+    actions.fadeTo( 0 , 0.5);
+    // document.body
+    infoTooltips[0].show();
+    // actions.addClass('gray');
+    $(".controls > button").prop("disabled", true);
+});
+
+drop.on("dragover", function(event) {
+    event.preventDefault();
+});
+
+drop.on("dragleave", function() {
+    actions.fadeTo( 0 , 1);
+    infoTooltips[0].hide();
+    $(".controls > button").prop("disabled", false);
+    // actions.removeClass('gray');
+});
+
+
+drop.on("error", function(file, errorMessage) {
+    drop.removeFile(file);
+    statusTooltip.setProps({
+        theme: "error",
+        content: `${errorMessage}<br/><span style="font-size: 11px;">Click anywhere to hide</span>`
+    });
+    statusTooltip.show();
+});
+
+drop.on("success", function(file, res) {
+    statusTooltip.setProps({
+        theme: "success",
+        content: `${res}<br/><span style="font-size: 11px;">Click anywhere to hide</span>`
+    });
+    statusTooltip.show();
+});
+
+
+
+
+document.querySelector("#actions .start").onclick = function() {
+    drop.enqueueFiles(drop.getFilesWithStatus(Dropzone.ADDED));
+};

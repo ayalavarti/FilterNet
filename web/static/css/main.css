@@ -3,7 +3,7 @@
 html {
     font-family: "Lato", sans-serif;
     letter-spacing: 0.3px;
-    background-color: #f5f5f5;
+    /*background-color: #f5f5f5;*/
     height: 100%;
     width: 100%;
     scroll-behavior: smooth;
@@ -77,6 +77,7 @@ h1, h3 {
 
 .divider {
     width: 50px;
+    margin-bottom: 15px;
 }
 
 .divider.sub {
@@ -84,6 +85,87 @@ h1, h3 {
 }
 
 
+.files {
+    display: flex !important;
+    justify-content: center;
+}
+
 .container {
-    margin: 30px;
+    margin: 10px;
+}
+
+.hidden-text {
+    max-width: 80px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.file {
+    display: flex;
+    flex-wrap: wrap;
+    width: 200px;
+    border-top: 1px solid #ddd;
+    padding: 10px;
+    align-items: center;
+    justify-content: center;
+}
+
+.file:not(:last-child) {
+    border-right: 1px solid #f9f9f9;
+}
+
+.file > div {
+    margin: 5px;
+}
+
+#previews {
+    display: none;
+}
+
+#previews .file .delete {
+  display: none;
+}
+
+#previews .file.dz-success .start,
+#previews .file.dz-success .cancel {
+  display: none;
+}
+#previews .file.dz-success .delete {
+  display: block;
+}
+
+.tippy-box[data-theme~='filternet'] {
+  /*background-color: #44aafd;*/
+  color: #e7effd;
+}
+
+.tippy-box[data-theme~='success'] {
+    background-color: #209d82;
+    color: #ffffff;
+    font-size: 14px;
+}
+
+.tippy-box[data-theme~='error'] {
+    background-color: #c23b3d;
+    color: #ffffff;
+    font-size: 14px;
+}
+
+
+.info {
+    font-size: 20px;
+}
+
+#actions {
+    background: #f5f5f5;
+    box-shadow: 0 3px 3px 0 rgba(102, 132, 233, 0.07), 0 2px 8px 0 rgba(0, 0, 0, 0.19);
+}
+
+.controls {
+    display: flex;
+    justify-content: space-evenly;
+    align-items: center;
+
+    height: 100px;
 }

@@ -5,22 +5,21 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
 
-    <!--  Tooltips  -->
-    <script src="https://unpkg.com/popper.js@1/dist/umd/popper.min.js"></script>
-    <script src="https://unpkg.com/tippy.js@4"></script>
-
     <!--  Normalize CSS  -->
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/external/normalize.css') }}">
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/external/html5bp.css') }}">
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/main.css') }}">
 
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+
     <!--  Bootstrap  -->
-    <link rel="stylesheet" type="text/css" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css">
-	<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.bundle.min.js"></script>
+    <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css">
+    <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap-theme.min.css">
 
     <!--  Tooltips  -->
-	<script src="https://unpkg.com/popper.js@1/dist/umd/popper.min.js"></script>
-	<script src="https://unpkg.com/tippy.js@4"></script>
+    <script src="https://unpkg.com/@popperjs/core@2"></script>
+    <script src="https://unpkg.com/tippy.js@6"></script>
+    <link rel="stylesheet" href="https://unpkg.com/tippy.js@6/animations/scale.css"/>
 
     <!--  Font Awesome and Google Fonts  -->
     <link rel="stylesheet"
@@ -31,12 +30,72 @@
           rel="stylesheet">
     <link rel="shortcut icon" type="image/x-icon" href="{{ url_for('static', filename='images/favicon.jpg') }}">
 
-    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <script type="text/javascript" src="{{ url_for('static', filename='js/dropzone/dropzone.min.js') }}"></script>
+
 </head>
 <body>
     <div class="container">
-        <h1>FilterNet</h1>
-        <img class="divider" src="{{ url_for('static', filename='images/divider.png') }}">
+        <div class="container">
+            <div class="row" style="min-height: 70vh;">
+                <div class="col-md-8">
+
+                </div>
+                <div class="col-md-4">
+                    <h1>FilterNet</h1>
+                    <img class="divider" src="{{ url_for('static', filename='images/divider.png') }}">
+
+                    <div class="info" data-tippy-content="Drag and drop pictures here to upload">
+                        <div id="actions" class="row">
+                            <div class="col-md-12 controls">
+                                <button type='button' class="btn btn-primary fileinput-button">
+                                    <i class="glyphicon glyphicon-plus"></i>
+                                    <span>Add Pictures</span>
+                                </button>
+                                <button type="submit" class="btn btn-primary start">
+                                    <i class="glyphicon glyphicon-upload"></i>
+                                    <span>Upload All</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="row">
+                <div style="text-align: left; margin-bottom: 20px;" id="status">
+<!--                    <button id="status"><i class="fas fa-bell"></i></button>-->
+                </div>
+                <div class="col-md-12">
+                    <div class="files" id="previews">
+                        <div id="template" class="file">
+                            <div>
+                                <span class="preview"><img data-dz-thumbnail /></span>
+                            </div>
+                            <div>
+                                <p class="name hidden-text" data-dz-name></p>
+                            </div>
+                            <div>
+                                <strong class="error text-danger" data-dz-errormessage></strong>
+                            </div>
+                            <div>
+                                <button type='button' class="btn btn-primary start btn-sm">
+                                    <i class="fa fa-paint-brush"></i>
+                                    <span>Edit</span>
+                                </button>
+                                <button type="button" data-dz-remove class="btn btn-info cancel btn-sm">
+                                    <i class="glyphicon glyphicon-ban-circle"></i>
+                                    <span>Cancel</span>
+                                </button>
+                                <button type="button" data-dz-remove class="btn btn-danger delete btn-sm">
+                                    <i class="glyphicon glyphicon-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </body>
 <script type="text/javascript" src="{{ url_for('static', filename='js/main.js') }}"></script>
