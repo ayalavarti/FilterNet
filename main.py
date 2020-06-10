@@ -13,12 +13,13 @@ from util.lightroom.editor import PhotoEditor, PSNR
 from skimage.metrics import structural_similarity as ssim
 from skimage.transform import resize
 from skimage import io
+from PIL import Image
 
 # Killing optional CPU driver warnings
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 tf.keras.backend.set_floatx('float32')
 
-gpu_available = tf.config.list_physical_devices("GPU")
+gpu_available = tf.test.is_gpu_available()
 print(gpu_available)
 
 
@@ -318,7 +319,7 @@ def edit_original(big_image, generator):
     act_scaled, _ = generator.convert_prob_act(prob.numpy(), det=True,
                                                det_avg=hp.det_avg)
 
-    orig_edit = PhotoEditor.edit((big_image/255)[None], act_scaled)
+    orig_edit = PhotoEditor.edit((resized)[None], act_scaled)
 
     return orig_edit[0]
 
@@ -367,6 +368,10 @@ def main():
                 img_name = ARGS.image_path.split("/")[-1].split(".")[0]
                 # evaluate here!
                 img = io.imread(ARGS.image_path)
+                if img.shape[-1] == 4:
+                    rgba_img = Image.fromarray(img)
+                    img = np.array(rgba_img.convert('RGB'))
+
                 edited_img = edit_original(img, generator)
 
                 io.imshow(edited_img)
