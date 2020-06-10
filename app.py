@@ -28,15 +28,15 @@ def init_model():
 
     if ret is None or not ret or blob is None:
         print("Error reading from database")
-        exit(1)
 
-    with tempfile.NamedTemporaryFile(suffix='.h5') as gen_file, \
+    if blob:    
+        with tempfile.NamedTemporaryFile(suffix='.h5') as gen_file, \
             tempfile.NamedTemporaryFile(suffix='.h5') as disc_file:
-        gen_file.write(blob[0])
-        disc_file.write(blob[1])
+            gen_file.write(blob[0])
+            disc_file.write(blob[1])
 
-        generator.load_weights(gen_file.name)
-        discriminator.load_weights(disc_file.name)
+            generator.load_weights(gen_file.name)
+            discriminator.load_weights(disc_file.name)
 
 
 init_model()
