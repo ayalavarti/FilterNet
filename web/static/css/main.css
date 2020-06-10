@@ -91,7 +91,7 @@ h1, h3 {
 }
 
 .container {
-    margin: 10px;
+    margin: 50px 50px 0 50px;
 }
 
 .hidden-text {
@@ -123,6 +123,7 @@ h1, h3 {
     display: none;
 }
 
+#previews .file .edit,
 #previews .file .delete {
   display: none;
 }
@@ -131,8 +132,10 @@ h1, h3 {
 #previews .file.dz-success .cancel {
   display: none;
 }
+
+#previews .file.dz-success .edit,
 #previews .file.dz-success .delete {
-  display: block;
+  display: inline-block;
 }
 
 .tippy-box[data-theme~='filternet'] {
@@ -168,4 +171,16 @@ h1, h3 {
     align-items: center;
 
     height: 100px;
+}
+
+.btn-primary {
+    color: #fff;
+    background-color: #46acff !important;
+    border-color: #46acff !important;
+}
+
+.btn-danger {
+    color: #fff;
+    background-color: #d9534f !important;
+    border-color: #d9534f !important;
 }

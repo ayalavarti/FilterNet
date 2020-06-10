@@ -1,16 +1,22 @@
 import tempfile
 
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, send_file, jsonify
+from matplotlib import pyplot as plt
 import os
 from db.query import FilterNetQuery
 from nn.models import *
 import numpy as np
+import cv2
+import io
+from PIL import Image
 
 MODEL_ID = 2
 
 template_dir = os.path.abspath('./web/templates')
 static_dir = os.path.abspath('./web/static')
+
 app = Flask(__name__, template_folder=template_dir, static_folder=static_dir)
+app.secret_key = "super secret key"
 
 generator = Generator()
 discriminator = Discriminator()
@@ -32,6 +38,13 @@ with tempfile.NamedTemporaryFile(suffix='.h5') as gen_file, \
     discriminator.load_weights(disc_file.name)
 
 
+def decode_image(file):
+    npimg = np.fromstring(file, np.uint8)
+    img = cv2.imdecode(npimg, cv2.IMREAD_UNCHANGED)
+    imageRGB = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    return imageRGB
+
+
 @app.route('/')
 def init_app():
     return render_template('home.html')
@@ -39,8 +52,22 @@ def init_app():
 
 @app.route("/edit", methods=['POST'])
 def edit_photo():
-    image = request.get_data()
-    image = np.array(image)
-    print(image.shape)
+    file = request.files['file'].read()
+    image = decode_image(file)
 
-    return "HI"
+    if 'id' in request.form:
+        print(request.form['id'])
+        # Edit image
+        res = {"status": "Success", "id": 1}
+    else:
+        im = Image.fromarray(image)
+
+        file_object = io.BytesIO()
+        im.save(file_object, 'PNG')
+
+        file_object.seek(0)
+
+        res = {"status": "Success", "id": 1}
+
+    return jsonify(res)
+    # return send_file(file_object, mimetype='image/PNG')

@@ -1,7 +1,7 @@
 let previewNode = $("#template");
 let previews = $("#previews");
-let actions = $("#actions");
-let controls = $(".controls");
+let info = $(".info");
+let files = $(".files");
 
 previewNode.id = "";
 
@@ -24,7 +24,7 @@ function initTooltips() {
     infoTooltips = tippy(".info", {
         animation: "scale",
         theme: "filternet",
-        maxWidth: 200,
+        maxWidth: 280,
         arrow: true,
         arrowType: "round",
         inertia: true,
@@ -42,13 +42,14 @@ function initTooltips() {
         arrow: false,
         sticky: true,
         allowHTML: true,
-        placement: "top-start",
+        placement: "top",
     })[0];
 }
 
-let drop = new Dropzone("div#actions", {
+let drop = new Dropzone(document.body, {
     url: "/edit",
     thumbnailWidth: 60,
+    maxThumbnailFilesize: 50,
     thumbnailHeight: 60,
     parallelUploads: 1,
     previewTemplate: previewTemplate,
@@ -60,18 +61,21 @@ let drop = new Dropzone("div#actions", {
 });
 
 drop.on("addedfile", function(file) {
-    console.log("Added file");
     file.previewElement.querySelector(".start").onclick = function() { drop.enqueueFile(file); };
-
+    file.previewElement.querySelector(".edit").onclick = function() { drop.enqueueFile(file); };
 });
 
 drop.on("sending", function(file, xhr, formData) {
     file.previewElement.querySelector(".start").setAttribute("disabled", "disabled");
     formData.append("filesize", file.size);
+    if (file.id !== undefined) {
+        formData.append("id", file.id);
+    }
 });
 
 drop.on("dragenter", function() {
-    actions.fadeTo( 0 , 0.5);
+    info.fadeTo( 0 , 0.5);
+    files.fadeTo( 0 , 0.5);
     // document.body
     infoTooltips[0].show();
     // actions.addClass('gray');
@@ -82,15 +86,23 @@ drop.on("dragover", function(event) {
     event.preventDefault();
 });
 
-drop.on("dragleave", function() {
-    actions.fadeTo( 0 , 1);
+$("body").click(function() {
+    info.fadeTo( 0 , 1);
+    files.fadeTo( 0 , 1);
     infoTooltips[0].hide();
     $(".controls > button").prop("disabled", false);
-    // actions.removeClass('gray');
+});
+
+drop.on("drop", function() {
+    info.fadeTo( 0 , 1);
+    files.fadeTo( 0 , 1);
+    infoTooltips[0].hide();
+    $(".controls > button").prop("disabled", false);
 });
 
 
 drop.on("error", function(file, errorMessage) {
+    console.log(errorMessage);
     drop.removeFile(file);
     statusTooltip.setProps({
         theme: "error",
@@ -102,13 +114,12 @@ drop.on("error", function(file, errorMessage) {
 drop.on("success", function(file, res) {
     statusTooltip.setProps({
         theme: "success",
-        content: `${res}<br/><span style="font-size: 11px;">Click anywhere to hide</span>`
+        content: `${res["status"]}<br/><span style="font-size: 11px;">Click anywhere to hide</span>`
     });
+    file.id = res["id"];
     statusTooltip.show();
+    file.status = Dropzone.ADDED;
 });
-
-
-
 
 document.querySelector("#actions .start").onclick = function() {
     drop.enqueueFiles(drop.getFilesWithStatus(Dropzone.ADDED));
