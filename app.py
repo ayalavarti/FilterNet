@@ -3,7 +3,8 @@ import tempfile
 from flask import Flask, render_template, request, send_file, jsonify
 from matplotlib import pyplot as plt
 import os
-from db.query import FilterNetQuery
+
+from db import *
 from nn.models import *
 import numpy as np
 import cv2

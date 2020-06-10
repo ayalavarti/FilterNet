@@ -29,4 +29,5 @@ flask run
 postgres -U <username>
 \c filternet
 \d models
+python -m db <command>
 ```
