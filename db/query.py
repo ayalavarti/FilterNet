@@ -1,6 +1,7 @@
 import os
-from argparse import ArgumentParser
 import psycopg2
+
+from argparse import ArgumentParser
 from .query_strings import *
 
 
@@ -90,7 +91,7 @@ class FilterNetQuery(DatabaseQuery):
         disc = open(disc_path, 'rb').read()
         return self.execute(INSERT_MODEL,
                             (psycopg2.Binary(gen), psycopg2.Binary(disc),),
-                            commit=True, ret=True)
+                            commit=True)
 
     def read_model(self, id):
         return self.execute(SELECT_MODEL, (id,), ret=True)
@@ -110,8 +111,7 @@ def main():
         print("Tables created")
 
     elif ARGS.command == 'insert':
-        res = query.insert_model(ARGS.generator, ARGS.discriminator)
-        print(res)
+        query.insert_model(ARGS.generator, ARGS.discriminator)
         print("Checkpoint directory inserted")
 
     elif ARGS.command == 'delete':

@@ -1,42 +1,45 @@
+import io
+import os
 import tempfile
 
-from flask import Flask, render_template, request, send_file, jsonify
-from matplotlib import pyplot as plt
-import os
+import cv2
+from PIL import Image
+from flask import Flask, render_template, request, jsonify
 
 from db import *
 from nn.models import *
-import numpy as np
-import cv2
-import io
-from PIL import Image
 
-MODEL_ID = 2
+MODEL_ID = os.environ["MODEL_ID"]
+dbURI = os.environ["DATABASE_URL"]
 
 template_dir = os.path.abspath('./web/templates')
 static_dir = os.path.abspath('./web/static')
 
 app = Flask(__name__, template_folder=template_dir, static_folder=static_dir)
-app.secret_key = "super secret key"
+app.secret_key = os.environ["FLASK_KEY"]
 
-generator = Generator()
-discriminator = Discriminator()
 
-dbURI = os.environ["DATABASE_URL"]
+def init_model():
+    generator = Generator()
+    discriminator = Discriminator()
 
-query = FilterNetQuery(dbURI)
-blob, ret = query.read_model(MODEL_ID)
+    query = FilterNetQuery(dbURI)
+    blob, ret = query.read_model(MODEL_ID)
 
-if ret is None or not ret:
-    exit(1)
+    if ret is None or not ret or blob is None:
+        print("Error reading from database")
+        exit(1)
 
-with tempfile.NamedTemporaryFile(suffix='.h5') as gen_file, \
-        tempfile.NamedTemporaryFile(suffix='.h5') as disc_file:
-    gen_file.write(blob[0])
-    disc_file.write(blob[1])
+    with tempfile.NamedTemporaryFile(suffix='.h5') as gen_file, \
+            tempfile.NamedTemporaryFile(suffix='.h5') as disc_file:
+        gen_file.write(blob[0])
+        disc_file.write(blob[1])
 
-    generator.load_weights(gen_file.name)
-    discriminator.load_weights(disc_file.name)
+        generator.load_weights(gen_file.name)
+        discriminator.load_weights(disc_file.name)
+
+
+init_model()
 
 
 def decode_image(file):

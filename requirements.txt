@@ -5,3 +5,5 @@ tensorflow==2.2.0rc3
 scipy==1.4.1
 seaborn==0.10.0
 opencv-python==4.2.0.34
+flask
+psycopg2
