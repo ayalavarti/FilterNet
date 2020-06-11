@@ -71,6 +71,7 @@ let drop = new Dropzone(document.body, {
     parallelUploads: 1,
     previewTemplate: previewTemplate,
     autoQueue: false,
+    timeout: 1000000,
     previewsContainer: "#previews",
     acceptedFiles: "image/jpeg",
     clickable: ".fileinput-button",
