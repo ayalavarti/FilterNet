@@ -26,10 +26,10 @@ def edit_original(big_image, generator):
     act_scaled, _ = generator.convert_prob_act(prob.numpy(), det=True,
                                                det_avg=hp.det_avg)
     print(big_image.shape)
-    if big_image.shape[0] > 600:
-        resized = resizeimage.resize_height(Image.fromarray(big_image), 600)
-    elif big_image.shape[1] > 600:
-        resized = resizeimage.resize_width(Image.fromarray(big_image), 600)
+    if big_image.shape[0] > 400:
+        resized = resizeimage.resize_height(Image.fromarray(big_image), 400)
+    elif big_image.shape[1] > 400:
+        resized = resizeimage.resize_width(Image.fromarray(big_image), 400)
     resized = np.array(resized)
     orig_edit = PhotoEditor.edit((resized/255)[None], act_scaled)
     return orig_edit[0]
