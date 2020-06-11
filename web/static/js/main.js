@@ -3,6 +3,8 @@ let previews = $("#previews");
 let info = $(".info");
 let files = $(".files");
 
+let upload_disabled = false;
+
 previewNode.id = "";
 
 let previewTemplate = previewNode.parent().html();
@@ -10,10 +12,13 @@ previewNode.remove();
 
 let infoTooltips;
 let statusTooltip;
+let startTooltip;
 
 $(document).ready(function () {
     initTooltips();
     previews.show();
+    $("#edited_image").hide();
+    startTooltip.show();
 });
 
 
@@ -44,6 +49,18 @@ function initTooltips() {
         allowHTML: true,
         placement: "top",
     })[0];
+
+    startTooltip = tippy("#startTooltip", {
+        animation: "scale",
+        theme: "filternet-alt",
+        trigger: 'manual',
+        hideOnClick: false,
+        inertia: true,
+        arrow: true,
+        sticky: true,
+        allowHTML: true,
+        placement: "bottom",
+    })[0];
 }
 
 let drop = new Dropzone(document.body, {
@@ -55,30 +72,37 @@ let drop = new Dropzone(document.body, {
     previewTemplate: previewTemplate,
     autoQueue: false,
     previewsContainer: "#previews",
+    timeout: 60000,
     acceptedFiles: "image/*",
     clickable: ".fileinput-button",
     maxFiles: 4
 });
 
+function viewImage(file) {
+    $("#edited_image").show();
+    console.log(file.image_url);
+    $("#edited_image").attr("src", file.image_url);
+}
+
 drop.on("addedfile", function(file) {
     file.previewElement.querySelector(".start").onclick = function() { drop.enqueueFile(file); };
-    file.previewElement.querySelector(".edit").onclick = function() { drop.enqueueFile(file); };
+    file.previewElement.querySelector(".edit").onclick = function() { viewImage(file) };
+    $("#upload-all").prop("disabled", false);
+    upload_disabled = false;
 });
 
 drop.on("sending", function(file, xhr, formData) {
+    let img = document.createElement('img');
+    img.src = 'static/images/loading.gif';
+
     file.previewElement.querySelector(".start").setAttribute("disabled", "disabled");
-    formData.append("filesize", file.size);
-    if (file.id !== undefined) {
-        formData.append("id", file.id);
-    }
+    file.previewElement.querySelector(".loading").appendChild(img);
 });
 
 drop.on("dragenter", function() {
     info.fadeTo( 0 , 0.5);
     files.fadeTo( 0 , 0.5);
-    // document.body
     infoTooltips[0].show();
-    // actions.addClass('gray');
     $(".controls > button").prop("disabled", true);
 });
 
@@ -91,6 +115,9 @@ $("body").click(function() {
     files.fadeTo( 0 , 1);
     infoTooltips[0].hide();
     $(".controls > button").prop("disabled", false);
+    if (upload_disabled) {
+        $("#upload-all").prop("disabled", true);
+    }
 });
 
 drop.on("drop", function() {
@@ -99,7 +126,6 @@ drop.on("drop", function() {
     infoTooltips[0].hide();
     $(".controls > button").prop("disabled", false);
 });
-
 
 drop.on("error", function(file, errorMessage) {
     console.log(errorMessage);
@@ -116,11 +142,18 @@ drop.on("success", function(file, res) {
         theme: "success",
         content: `${res["status"]}<br/><span style="font-size: 11px;">Click anywhere to hide</span>`
     });
-    file.id = res["id"];
     statusTooltip.show();
-    file.status = Dropzone.ADDED;
+    file.previewElement.querySelector(".loading").innerHTML= "";
+    file.image_url = res["image_url"];
 });
 
 document.querySelector("#actions .start").onclick = function() {
-    drop.enqueueFiles(drop.getFilesWithStatus(Dropzone.ADDED));
+    f = drop.getFilesWithStatus(Dropzone.ADDED);
+    f.forEach(function (file) {
+        file.previewElement.querySelector(".start").setAttribute("disabled", "disabled");
+    });
+    drop.enqueueFiles(f);
+
+    upload_disabled = true;
+    $("#upload-all").prop("disabled", true);
 };

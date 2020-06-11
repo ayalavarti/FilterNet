@@ -11,7 +11,6 @@ from nn.models import Generator, Discriminator
 from util.datasets import Datasets
 from util.lightroom.editor import PhotoEditor, PSNR
 from skimage.metrics import structural_similarity as ssim
-from skimage.transform import resize
 from skimage import io
 from PIL import Image
 
@@ -308,22 +307,6 @@ def performance(dataset, generator):
                                        ssim_baseline / batch_count))
 
 
-def edit_original(big_image, generator):
-    """
-    Takes in a full-sized image and runs the generator on a smaller version.
-    Returns an edited version of the full-sized image.
-    """
-    resized = resize(big_image, (hp.img_size, hp.img_size)).astype(np.float32)
-
-    prob, _ = generator(resized[None])
-    act_scaled, _ = generator.convert_prob_act(prob.numpy(), det=True,
-                                               det_avg=hp.det_avg)
-
-    orig_edit = PhotoEditor.edit((resized)[None], act_scaled)
-
-    return orig_edit[0]
-
-
 def main():
     # Initialize generator and discriminator models
     generator = Generator()
@@ -372,7 +355,7 @@ def main():
                     rgba_img = Image.fromarray(img)
                     img = np.array(rgba_img.convert('RGB'))
 
-                edited_img = edit_original(img, generator)
+                edited_img, _ = edit_original(img, generator)
 
                 io.imshow(edited_img)
                 io.show()

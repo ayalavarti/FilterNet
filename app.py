@@ -1,10 +1,12 @@
-import io
 import os
 import tempfile
 
 import cv2
+
 from PIL import Image
+from util.sys import edit_original
 from flask import Flask, render_template, request, jsonify
+from skimage.io import imsave
 
 from db import *
 from nn.models import *
@@ -29,23 +31,29 @@ def init_model():
     if ret is None or not ret or blob is None:
         print("Error reading from database")
 
-    if blob:    
+    if blob:
         with tempfile.NamedTemporaryFile(suffix='.h5') as gen_file, \
-            tempfile.NamedTemporaryFile(suffix='.h5') as disc_file:
+                tempfile.NamedTemporaryFile(suffix='.h5') as disc_file:
             gen_file.write(blob[0])
             disc_file.write(blob[1])
 
             generator.load_weights(gen_file.name)
             discriminator.load_weights(disc_file.name)
+    return generator, discriminator
 
 
-init_model()
+generator, discriminator = init_model()
 
 
 def decode_image(file):
     npimg = np.fromstring(file, np.uint8)
     img = cv2.imdecode(npimg, cv2.IMREAD_UNCHANGED)
-    imageRGB = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    imageRGB = np.array(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
+
+    if imageRGB.shape[-1] == 4:
+        rgba_img = Image.fromarray(imageRGB)
+        imageRGB = np.array(rgba_img.convert('RGB'))
+
     return imageRGB
 
 
@@ -56,22 +64,15 @@ def init_app():
 
 @app.route("/edit", methods=['POST'])
 def edit_photo():
-    file = request.files['file'].read()
+    file = request.files['file']
+    filename = file.filename
+    file = file.read()
     image = decode_image(file)
+    print("Image received")
 
-    if 'id' in request.form:
-        print(request.form['id'])
-        # Edit image
-        res = {"status": "Success", "id": 1}
-    else:
-        im = Image.fromarray(image)
+    edit = edit_original(image, generator)
+    filepath = static_dir + "/images/" + filename + "-edit.png"
+    imsave(filepath, edit)
 
-        file_object = io.BytesIO()
-        im.save(file_object, 'PNG')
-
-        file_object.seek(0)
-
-        res = {"status": "Success", "id": 1}
-
-    return jsonify(res)
-    # return send_file(file_object, mimetype='image/PNG')
+    filepath = "static/images/" + filename + "-edit.png"
+    return jsonify({'status': "Success", "image_url": filepath})

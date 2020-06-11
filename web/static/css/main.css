@@ -133,6 +133,11 @@ h1, h3 {
   display: none;
 }
 
+#previews .file-row.dz-success .progress {
+  opacity: 0;
+  transition: opacity 0.3s linear;
+}
+
 #previews .file.dz-success .start,
 #previews .file.dz-success .cancel {
   display: none;
@@ -144,22 +149,50 @@ h1, h3 {
 }
 
 .tippy-box[data-theme~='filternet'] {
-  /*background-color: #44aafd;*/
-  color: #e7effd;
+    color: #e7effd;
+    font-size: 14px;
+    font-weight: 400;
+    box-shadow: 0 2px 4px 0 rgba(99, 100, 100, 0.397);
 }
 
 .tippy-box[data-theme~='success'] {
     background-color: #209d82;
     color: #ffffff;
     font-size: 14px;
+    font-weight: 400;
+    box-shadow: 0 2px 4px 0 rgba(99, 100, 100, 0.397);
 }
 
 .tippy-box[data-theme~='error'] {
     background-color: #c23b3d;
     color: #ffffff;
     font-size: 14px;
+    font-weight: 400;
+    box-shadow: 0 2px 4px 0 rgba(99, 100, 100, 0.397);
 }
 
+.tippy-box[data-theme~='filternet-alt'] {
+    background-color: #46acff;
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 400;
+    box-shadow: 0 2px 4px 0 rgba(99, 100, 100, 0.397);
+    padding: 5px 12px;
+}
+
+
+.tippy-box[data-theme~='filternet-alt'][data-placement^='top'] > .tippy-arrow::before {
+  border-top-color: #46acff;
+}
+.tippy-box[data-theme~='filternet-alt'][data-placement^='bottom'] > .tippy-arrow::before {
+  border-bottom-color: #46acff;
+}
+.tippy-box[data-theme~='filternet-alt'][data-placement^='left'] > .tippy-arrow::before {
+  border-left-color: #46acff;
+}
+.tippy-box[data-theme~='filternet-alt'][data-placement^='right'] > .tippy-arrow::before {
+  border-right-color: #46acff;
+}
 
 .info {
     font-size: 20px;
@@ -188,6 +221,40 @@ h1, h3 {
 
 .btn-danger {
     color: #fff;
-    background-color: #d9534f !important;
-    border-color: #d9534f !important;
+    background-color: #ef615d !important;
+    border-color: #ef615d !important;
+}
+
+.btn-success {
+    color: #fff;
+    background-color: #3cb59b !important;
+    border-color: #3cb59b !important;
+}
+
+.loading > img {
+    width: 30px;
+}
+
+.edited-view {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#edited_image {
+    max-height: 450px;
+}
+
+.control-panel {
+    text-align: center;
+    position: absolute;
+    right: 10%;
+}
+
+.controls > button {
+    margin: 0 5px;
+}
+
+.preview-img {
+   box-shadow: 0 3px 3px 0 rgba(102, 132, 233, 0.07), 0 2px 8px 0 rgba(0, 0, 0, 0.19);
 }
