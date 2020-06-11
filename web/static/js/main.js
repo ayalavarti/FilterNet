@@ -72,7 +72,7 @@ let drop = new Dropzone(document.body, {
     previewTemplate: previewTemplate,
     autoQueue: false,
     previewsContainer: "#previews",
-    acceptedFiles: "image/*",
+    acceptedFiles: "image/jpeg",
     clickable: ".fileinput-button",
     maxFiles: 4
 });

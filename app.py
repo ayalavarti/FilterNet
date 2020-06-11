@@ -28,9 +28,6 @@ def init_model():
     query = FilterNetQuery(dbURI)
     blob, ret = query.read_model(MODEL_ID)
 
-    if ret is None or not ret or blob is None:
-        print("Error reading from database")
-
     if blob:
         with tempfile.NamedTemporaryFile(suffix='.h5') as gen_file, \
                 tempfile.NamedTemporaryFile(suffix='.h5') as disc_file:
@@ -39,6 +36,7 @@ def init_model():
 
             generator.load_weights(gen_file.name)
             discriminator.load_weights(disc_file.name)
+            print("Weights loaded")
     return generator, discriminator
 
 
@@ -46,14 +44,8 @@ generator, discriminator = init_model()
 
 
 def decode_image(file):
-    npimg = np.fromstring(file, np.uint8)
-    img = cv2.imdecode(npimg, cv2.IMREAD_UNCHANGED)
-    imageRGB = np.array(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
-
-    if imageRGB.shape[-1] == 4:
-        rgba_img = Image.fromarray(imageRGB)
-        imageRGB = np.array(rgba_img.convert('RGB'))
-
+    img = Image.open(file)
+    imageRGB = np.array(img)
     return imageRGB
 
 
@@ -66,7 +58,6 @@ def init_app():
 def edit_photo():
     file = request.files['file']
     filename = file.filename
-    file = file.read()
     image = decode_image(file)
     print("Image received")
 

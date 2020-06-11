@@ -327,7 +327,9 @@ def main():
     if ARGS.command != 'train' or ARGS.restore_checkpoint:
         # Restores the latest checkpoint using from the manager
         checkpoint.restore(manager.latest_checkpoint).expect_partial()
-        save_model_weights(generator, discriminator)
+        # save_model_weights(generator, discriminator)
+        # generator.load_weights("generator.h5")
+        # discriminator.load_weights("discriminator.h5")
         print("Restored checkpoint")
 
     try:
@@ -351,11 +353,11 @@ def main():
                 img_name = ARGS.image_path.split("/")[-1].split(".")[0]
                 # evaluate here!
                 img = io.imread(ARGS.image_path)
-                if img.shape[-1] == 4:
-                    rgba_img = Image.fromarray(img)
-                    img = np.array(rgba_img.convert('RGB'))
+                # if img.shape[-1] == 4:
+                #     rgba_img = Image.fromarray(img)
+                #     img = np.array(rgba_img.convert('RGB'))
 
-                edited_img, _ = edit_original(img, generator)
+                edited_img = sys.edit_original(img, generator)
 
                 io.imshow(edited_img)
                 io.show()
