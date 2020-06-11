@@ -72,7 +72,6 @@ let drop = new Dropzone(document.body, {
     previewTemplate: previewTemplate,
     autoQueue: false,
     previewsContainer: "#previews",
-    timeout: 60000,
     acceptedFiles: "image/*",
     clickable: ".fileinput-button",
     maxFiles: 4
@@ -80,6 +79,7 @@ let drop = new Dropzone(document.body, {
 
 function viewImage(file) {
     $("#edited_image").show();
+    startTooltip.hide();
     console.log(file.image_url);
     $("#edited_image").attr("src", file.image_url);
 }

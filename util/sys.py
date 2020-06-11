@@ -1,10 +1,13 @@
 import os
 
+from PIL import Image
+
 import nn.hyperparameters as hp
 import numpy as np
 
 from skimage.transform import resize
 from util.lightroom.editor import PhotoEditor
+from resizeimage import resizeimage
 
 
 def enforce_dir(directory):
@@ -22,6 +25,11 @@ def edit_original(big_image, generator):
     prob, _ = generator(resized[None])
     act_scaled, _ = generator.convert_prob_act(prob.numpy(), det=True,
                                                det_avg=hp.det_avg)
-
-    orig_edit = PhotoEditor.edit((big_image/255)[None], act_scaled)
+    print(big_image.shape)
+    if big_image.shape[0] > 600:
+        resized = resizeimage.resize_height(Image.fromarray(big_image), 600)
+    elif big_image.shape[1] > 600:
+        resized = resizeimage.resize_width(Image.fromarray(big_image), 600)
+    resized = np.array(resized)
+    orig_edit = PhotoEditor.edit((resized/255)[None], act_scaled)
     return orig_edit[0]
