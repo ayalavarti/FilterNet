@@ -1,0 +1,18 @@
+runtime: custom
+env: flex
+entrypoint: gunicorn -b :$PORT app:app
+
+runtime_config:
+  python_version: 3.6
+
+handlers:
+- url: /static
+  static_dir: static
+
+resources:
+  cpu: 2
+  memory_gb: 4.0
+  disk_size_gb: 20
+
+readiness_check:
+  app_start_timeout_sec: 1800

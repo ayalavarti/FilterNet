@@ -1,0 +1,29 @@
+# Byte-compiled / optimized / DLL files
+*/__pycache__/
+*.py[cod]
+*$py.class
+
+# Environments
+cv_env/
+
+.git
+.gitignore
+.idea/
+.vscode/
+__pycache__
+
+.DS_Store
+
+*.tar.gz
+
+data/
+data_old/
+saved_models/
+logs/
+model_weights/
+output/
+
+config
+init
+
+web/static/images/*-edit.png
