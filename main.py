@@ -18,7 +18,7 @@ from PIL import Image
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 tf.keras.backend.set_floatx('float32')
 
-gpu_available = tf.test.is_gpu_available()
+gpu_available = tf.config.list_physical_devices("GPU")
 print(gpu_available)
 
 

@@ -20,5 +20,7 @@ saved_models/
 logs/
 model_weights/
 output/
+resources/
+
 
 web/static/images/*-edit.png

@@ -1,7 +1,5 @@
 #!/bin/sh
 
-export DB_USER=$1
-export DB_PASS=$2
-export DATABASE_URL="postgres://$1:$2@localhost:5432/filternet"
-export MODEL_ID=1
 export FLASK_KEY='key'
+export GOOGLE_APPLICATION_CREDENTIALS=$1
+export MODEL_PATH=$2

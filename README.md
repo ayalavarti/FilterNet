@@ -17,13 +17,6 @@ python main.py [-h] [--checkpoint-dir] [--device] {train, test, evaluate, perfor
 ```
 Use the `-h` or `--help` flags to view optional arguments for each command of `{train, test, evaluate, performance}`. For example `python main.py train -h`.
 
-## Postgres Commands
-```
-postgres -U <username>
-\c filternet
-\d models
-python -m db <command>
-```
 
 ## Edit Local Images
 With learned model weights in the specified `checkpoint-dir`, run
