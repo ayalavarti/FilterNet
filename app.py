@@ -7,6 +7,7 @@ from PIL import Image
 from util.sys import edit_original
 from flask import Flask, render_template, request, jsonify
 from skimage.io import imsave
+from memory_profiler import profile
 
 from db import *
 from nn.models import *
@@ -57,6 +58,11 @@ def init_app():
 @app.route("/edit", methods=['POST'])
 def edit_photo():
     file = request.files['file']
+    return a(file)
+
+
+@profile
+def a(file):
     filename = file.filename
     image = decode_image(file)
     print("Image received")
