@@ -23,7 +23,6 @@ def edit_original(big_image, generator):
     Returns an edited version of the full-sized image.
     """
     print("Resizing")
-    # resized = resizeimage.resize_crop(big_image, [])
     resized = resize(big_image, (hp.img_size, hp.img_size)).astype(np.float32)
     print("Running generator")
     prob, _ = generator(resized[None])
