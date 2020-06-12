@@ -1,5 +1,5 @@
 # FilterNet
-This project implements a deep learning architecture for unpaired image enhancement using reinforcement learning. 
+This project implements a deep learning architecture for unpaired image enhancement using reinforcement learning.
 
 
 ## Configurations
@@ -17,14 +17,17 @@ python main.py [-h] [--checkpoint-dir] [--device] {train, test, evaluate, perfor
 ```
 Use the `-h` or `--help` flags to view optional arguments for each command of `{train, test, evaluate, performance}`. For example `python main.py train -h`.
 
-To train with default hyperparameters and settings, run
+## Postgres Commands
 ```
-python main.py train
+postgres -U <username>
+\c filternet
+\d models
+python -m db <command>
 ```
 
 ## Edit Local Images
-With learned model weights in the specified `checkpoint-dir`, run 
+With learned model weights in the specified `checkpoint-dir`, run
 ```
 python main.py evaluate --image-path IMAGE_PATH
 ```
-where `IMAGE_PATH` is the path to any image stored locally to run the given image through the generator and display the resulting edits. 
+where `IMAGE_PATH` is the path to any image stored locally to run the given image through the generator and display the resulting edits.

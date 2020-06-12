@@ -1,7 +1,12 @@
 matplotlib==3.2.1
 numpy==1.18.3
 scikit-image==0.16.2
-tensorflow==2.2.0rc3
+tensorflow==2.0.1
 scipy==1.4.1
 seaborn==0.10.0
 opencv-python==4.2.0.34
+Flask==1.1.1
+psycopg2-binary==2.8.5
+gunicorn==20.0.4
+python-resize-image==1.1.19
+memory-profiler==0.57.0

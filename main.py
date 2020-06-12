@@ -11,14 +11,14 @@ from nn.models import Generator, Discriminator
 from util.datasets import Datasets
 from util.lightroom.editor import PhotoEditor, PSNR
 from skimage.metrics import structural_similarity as ssim
-from skimage.transform import resize
 from skimage import io
+from PIL import Image
 
 # Killing optional CPU driver warnings
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 tf.keras.backend.set_floatx('float32')
 
-gpu_available = tf.config.list_physical_devices("GPU")
+gpu_available = tf.test.is_gpu_available()
 print(gpu_available)
 
 
@@ -179,6 +179,11 @@ def parse_args():
 ARGS = parse_args()
 
 
+def save_model_weights(gen, disc):
+    gen.save_weights(ARGS.checkpoint_dir + "/generator.h5", save_format='h5')
+    disc.save_weights(ARGS.checkpoint_dir + "/discriminator.h5", save_format='h5')
+
+
 def train(dataset, manager, generator, discriminator):
     for e in range(ARGS.epochs):
         print("========== Epoch {} ==========".format(e))
@@ -231,6 +236,7 @@ def train(dataset, manager, generator, discriminator):
 
             if b % ARGS.save_every_x_batches == 0:
                 manager.save()
+                save_model_weights(generator, discriminator)
 
 
 def test(dataset, generator):
@@ -301,22 +307,6 @@ def performance(dataset, generator):
                                        ssim_baseline / batch_count))
 
 
-def edit_original(big_image, generator):
-    """
-    Takes in a full-sized image and runs the generator on a smaller version.
-    Returns an edited version of the full-sized image.
-    """
-    resized = resize(big_image, (hp.img_size, hp.img_size)).astype(np.float32)
-
-    prob, _ = generator(resized[None])
-    act_scaled, _ = generator.convert_prob_act(prob.numpy(), det=True,
-                                               det_avg=hp.det_avg)
-
-    orig_edit = PhotoEditor.edit((big_image/255)[None], act_scaled)
-
-    return orig_edit[0]
-
-
 def main():
     # Initialize generator and discriminator models
     generator = Generator()
@@ -337,6 +327,9 @@ def main():
     if ARGS.command != 'train' or ARGS.restore_checkpoint:
         # Restores the latest checkpoint using from the manager
         checkpoint.restore(manager.latest_checkpoint).expect_partial()
+        # save_model_weights(generator, discriminator)
+        # generator.load_weights("generator.h5")
+        # discriminator.load_weights("discriminator.h5")
         print("Restored checkpoint")
 
     try:
@@ -360,7 +353,11 @@ def main():
                 img_name = ARGS.image_path.split("/")[-1].split(".")[0]
                 # evaluate here!
                 img = io.imread(ARGS.image_path)
-                edited_img = edit_original(img, generator)
+                # if img.shape[-1] == 4:
+                #     rgba_img = Image.fromarray(img)
+                #     img = np.array(rgba_img.convert('RGB'))
+
+                edited_img = sys.edit_original(img, generator)
 
                 io.imshow(edited_img)
                 io.show()
