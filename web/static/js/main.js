@@ -146,6 +146,7 @@ drop.on("success", function(file, res) {
     statusTooltip.show();
     file.previewElement.querySelector(".loading").innerHTML= "";
     file.image_url = res["image_url"];
+    file.previewElement.querySelector(".download").href = file.image_url;
 });
 
 document.querySelector("#actions .start").onclick = function() {

@@ -34,13 +34,13 @@
 </head>
 <body>
     <div class="container">
-            <div class="row" style="min-height: 70vh;">
-                <div class="col-lg-12 edited-view">
+            <div class="row display">
+                <div class="col-lg-12 edited-view order-12">
                       <div id="startTooltip" class="preview" data-tippy-content="Upload a picture to view FilterNet edits">
                           <img id="edited_image" alt="Upload an image to view edits"/>
                       </div>
                 </div>
-                <div class="control-panel">
+                <div class="control-panel order-1">
 
                     <h2>FilterNet</h2>
                     <img class="divider" src="{{ url_for('static', filename='images/divider.png') }}">
@@ -63,7 +63,7 @@
                 </div>
             </div>
 
-            <div class="row">
+            <div class="row icons">
                 <div class="col-md-12" id="status">
                     <div class="files" id="previews">
                         <div id="template" class="file">
@@ -93,6 +93,10 @@
                                     <i class="far fa-trash-alt"></i>
                                     <span>Delete</span>
                                 </button>
+                                <a class="btn btn-primary btn-sm download" download="edited-image">
+                                    <i class="fas fa-download"></i>
+                                    <span>Download</span>
+                                </a>
                             </div>
                         </div>
                     </div>

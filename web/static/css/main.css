@@ -104,7 +104,7 @@ h1, h3 {
 .file {
     display: flex;
     flex-wrap: wrap;
-    width: 250px;
+    width: 275px;
     border-top: 1px solid #ddd;
     padding: 10px;
     align-items: center;
@@ -128,6 +128,7 @@ h1, h3 {
     display: none;
 }
 
+#previews .file .download,
 #previews .file .edit,
 #previews .file .delete {
   display: none;
@@ -143,6 +144,7 @@ h1, h3 {
   display: none;
 }
 
+#previews .file.dz-success .download,
 #previews .file.dz-success .edit,
 #previews .file.dz-success .delete {
   display: inline-block;
@@ -239,6 +241,7 @@ h1, h3 {
     display: flex;
     justify-content: center;
     align-items: center;
+    margin: 50px 0;
 }
 
 #edited_image {
@@ -257,4 +260,40 @@ h1, h3 {
 
 .preview-img {
    box-shadow: 0 3px 3px 0 rgba(102, 132, 233, 0.07), 0 2px 8px 0 rgba(0, 0, 0, 0.19);
+}
+
+.display {
+    min-height: 70vh;
+}
+
+.icons {
+    margin: 30px 0px;
+}
+
+.download {
+    color: white !important;
+    padding: 5px !important;
+}
+
+@media (max-width: 992px) {
+    .control-panel {
+        position: relative;
+        right: auto;
+        margin: 0 auto;
+        width: 100%;
+    }
+
+    .display {
+        min-height: auto;
+    }
+}
+
+    @media (max-width: 768px) {
+    .files {
+        flex-wrap: wrap;
+    }
+
+    .file {
+        border: none !important;
+    }
 }
