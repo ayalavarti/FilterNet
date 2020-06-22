@@ -20,7 +20,6 @@ data/
 data_old/
 saved_models/
 logs/
-model_weights/
 output/
 
 config

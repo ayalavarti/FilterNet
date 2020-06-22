@@ -19,9 +19,7 @@ data_old/
 saved_models/
 logs/
 model_weights/
+model_weights_backup/
 output/
 resources/
 
-Dockerfile
-
-web/static/images/*-edit.png

@@ -14,6 +14,8 @@ let infoTooltips;
 let statusTooltip;
 let startTooltip;
 
+let displayedFile;
+
 $(document).ready(function () {
     initTooltips();
     previews.show();
@@ -79,10 +81,10 @@ let drop = new Dropzone(document.body, {
 });
 
 function viewImage(file) {
+    displayedFile = file.id
     $("#edited_image").show();
     startTooltip.hide();
-    console.log(file.image_url);
-    $("#edited_image").attr("src", file.image_url);
+    $("#edited_image").attr("src", file.image);
 }
 
 drop.on("addedfile", function(file) {
@@ -90,6 +92,14 @@ drop.on("addedfile", function(file) {
     file.previewElement.querySelector(".edit").onclick = function() { viewImage(file) };
     $("#upload-all").prop("disabled", false);
     upload_disabled = false;
+});
+
+drop.on("removedfile", function(file) {
+    if (displayedFile === file.id) {
+        $("#edited_image").attr("src", null)
+        $("#edited_image").hide();
+        startTooltip.show();
+    }
 });
 
 drop.on("sending", function(file, xhr, formData) {
@@ -145,7 +155,8 @@ drop.on("success", function(file, res) {
     });
     statusTooltip.show();
     file.previewElement.querySelector(".loading").innerHTML= "";
-    file.image_url = res["image_url"];
+    file.image = res["image"];
+    file.id = res["id"];
     file.previewElement.querySelector(".download").href = file.image_url;
 });
 
